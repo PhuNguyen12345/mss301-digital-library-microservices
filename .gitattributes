@@ -1,0 +1,20 @@
+# Mặc định tự động xử lý ký tự xuống dòng cho mọi file text
+* text=auto
+
+# Bắt buộc định dạng xuống dòng cho Maven Wrapper (Cực kỳ quan trọng)
+/mvnw text eol=lf
+*.cmd text eol=crlf
+
+# Ép các file source code Java và cấu hình phải dùng chung chuẩn LF (Tránh conflict dòng thừa)
+*.java text eol=lf
+*.xml text eol=lf
+*.yml text eol=lf
+*.properties text eol=lf
+*.md text eol=lf
+*.json text eol=lf
+
+# Khai báo các file nhị phân (Binary) để Git không đụng chạm vào cấu trúc file
+*.jar binary
+*.class binary
+*.png binary
+*.jpg binary

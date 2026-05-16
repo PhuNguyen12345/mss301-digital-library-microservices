@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>fu.edu.mss301</groupId>
+    <artifactId>digilib</artifactId>
+    <version>1.0.0</version>
+    <packaging>pom</packaging> <name>Digital Library Management System</name>
+    <description>Monorepo for Digital Library Management System</description>
+
+    <modules>
+        <module>infra/eureka-server</module>
+        <module>infra/api-gateway</module>
+        <module>services/book-service</module>
+    </modules>
+
+</project>
