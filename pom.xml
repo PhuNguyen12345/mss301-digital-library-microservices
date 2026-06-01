@@ -4,16 +4,72 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>fu.edu.mss301</groupId>
-    <artifactId>digilib</artifactId>
+    <groupId>fu.edu.mss301.digilib</groupId>
+    <artifactId>digilib-parent</artifactId>
     <version>1.0.0</version>
     <packaging>pom</packaging> <name>Digital Library Management System</name>
     <description>Monorepo for Digital Library Management System</description>
 
+    <properties>
+        <maven.compiler.source>21</maven.compiler.source>
+        <maven.compiler.target>21</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <spring-boot.version>3.5.14</spring-boot.version>
+        <lombok.version>1.18.46</lombok.version>
+        <spring-cloud.version>2025.0.0</spring-cloud.version>
+    </properties>
+
     <modules>
         <module>infra/eureka-server</module>
         <module>infra/api-gateway</module>
-        <module>services/book-service</module>
+        <module>services/catalog-service</module>
+        <module>services/fine-service</module>
+        <module>services/loan-service</module>
+        <module>services/member-service</module>
+        <module>services/notification-service</module>
+        <module>shared/common-web</module>
     </modules>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-dependencies</artifactId>
+                <version>${spring-boot.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.springframework.cloud</groupId>
+                <artifactId>spring-cloud-dependencies</artifactId>
+                <version>${spring-cloud.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.projectlombok</groupId>
+                <artifactId>lombok</artifactId>
+                <version>${lombok.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>fu.edu.mss301.digilib</groupId>
+                <artifactId>common-web</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <build>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-maven-plugin</artifactId>
+                    <version>${spring-boot.version}</version>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+    </build>
 
 </project>
