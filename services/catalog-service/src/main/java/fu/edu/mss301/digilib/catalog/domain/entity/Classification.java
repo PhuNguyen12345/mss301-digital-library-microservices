@@ -1,0 +1,27 @@
+package fu.edu.mss301.digilib.catalog.domain.entity;
+
+import jakarta.persistence.*;
+import lombok.*;
+
+@Getter
+@Setter
+@Entity
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+@Table(name = "classifications")
+public class Classification {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "classification_id")
+    private Long classificationId;
+
+    @Column(name = "classification_system", nullable = false, length = 50)
+    private String classificationSystem;
+
+    @Column(name = "classification_name", nullable = false, length = 100)
+    private String classificationName;
+
+    @Column(name = "classification_code", nullable = false)
+    private Integer classificationCode;
+}
