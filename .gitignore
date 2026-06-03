@@ -19,7 +19,6 @@ buildNumber.properties
 .settings/
 .project
 .classpath
-*.properties
 # Bỏ qua các file môi trường và log
 *.log
 .env
