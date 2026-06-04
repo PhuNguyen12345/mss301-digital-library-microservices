@@ -14,12 +14,12 @@ import fu.edu.mss301.digilib.identity.api.dto.UserResponse;
 import fu.edu.mss301.digilib.identity.domain.entity.Permission;
 import fu.edu.mss301.digilib.identity.domain.entity.Role;
 import fu.edu.mss301.digilib.identity.domain.entity.User;
+import fu.edu.mss301.digilib.identity.domain.repository.PermissionRepository;
+import fu.edu.mss301.digilib.identity.domain.repository.RolePermissionRepository;
+import fu.edu.mss301.digilib.identity.domain.repository.RoleRepository;
+import fu.edu.mss301.digilib.identity.domain.repository.UserRepository;
+import fu.edu.mss301.digilib.identity.domain.repository.UserRoleRepository;
 import fu.edu.mss301.digilib.identity.infrastructure.keycloak.KeycloakUserClient;
-import fu.edu.mss301.digilib.identity.infrastructure.persistence.PermissionJpaRepository;
-import fu.edu.mss301.digilib.identity.infrastructure.persistence.RoleJpaRepository;
-import fu.edu.mss301.digilib.identity.infrastructure.persistence.RolePermissionJpaRepository;
-import fu.edu.mss301.digilib.identity.infrastructure.persistence.UserJpaRepository;
-import fu.edu.mss301.digilib.identity.infrastructure.persistence.UserRoleJpaRepository;
 import java.math.BigDecimal;
 import java.util.Optional;
 import java.util.UUID;
@@ -33,19 +33,19 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class IdentityServiceTests {
 
 	@Mock
-	UserJpaRepository userRepository;
+	UserRepository userRepository;
 
 	@Mock
-	RoleJpaRepository roleRepository;
+	RoleRepository roleRepository;
 
 	@Mock
-	PermissionJpaRepository permissionRepository;
+	PermissionRepository permissionRepository;
 
 	@Mock
-	UserRoleJpaRepository userRoleRepository;
+	UserRoleRepository userRoleRepository;
 
 	@Mock
-	RolePermissionJpaRepository rolePermissionRepository;
+	RolePermissionRepository rolePermissionRepository;
 
 	@Mock
 	KeycloakUserClient keycloakUserClient;

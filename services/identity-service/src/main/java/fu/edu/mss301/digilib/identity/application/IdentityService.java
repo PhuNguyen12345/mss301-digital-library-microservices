@@ -6,19 +6,22 @@ import fu.edu.mss301.digilib.identity.api.dto.RoleCreateRequest;
 import fu.edu.mss301.digilib.identity.api.dto.RoleResponse;
 import fu.edu.mss301.digilib.identity.api.dto.UserCreateRequest;
 import fu.edu.mss301.digilib.identity.api.dto.UserResponse;
-import fu.edu.mss301.digilib.identity.domain.entity.Member;
+import fu.edu.mss301.digilib.identity.domain.aggregate.RoleAccessAggregate;
+import fu.edu.mss301.digilib.identity.domain.aggregate.UserAccountAggregate;
 import fu.edu.mss301.digilib.identity.domain.entity.Permission;
 import fu.edu.mss301.digilib.identity.domain.entity.Role;
-import fu.edu.mss301.digilib.identity.domain.entity.RolePermission;
 import fu.edu.mss301.digilib.identity.domain.entity.User;
-import fu.edu.mss301.digilib.identity.domain.entity.UserRole;
+import fu.edu.mss301.digilib.identity.domain.repository.PermissionRepository;
+import fu.edu.mss301.digilib.identity.domain.repository.RolePermissionRepository;
+import fu.edu.mss301.digilib.identity.domain.repository.RoleRepository;
+import fu.edu.mss301.digilib.identity.domain.repository.UserRepository;
+import fu.edu.mss301.digilib.identity.domain.repository.UserRoleRepository;
+import fu.edu.mss301.digilib.identity.domain.vo.EmailAddress;
+import fu.edu.mss301.digilib.identity.domain.vo.MemberCode;
+import fu.edu.mss301.digilib.identity.domain.vo.PermissionScope;
+import fu.edu.mss301.digilib.identity.domain.vo.PhoneNumber;
+import fu.edu.mss301.digilib.identity.domain.vo.Username;
 import fu.edu.mss301.digilib.identity.infrastructure.keycloak.KeycloakUserClient;
-import fu.edu.mss301.digilib.identity.infrastructure.persistence.PermissionJpaRepository;
-import fu.edu.mss301.digilib.identity.infrastructure.persistence.RoleJpaRepository;
-import fu.edu.mss301.digilib.identity.infrastructure.persistence.RolePermissionJpaRepository;
-import fu.edu.mss301.digilib.identity.infrastructure.persistence.UserJpaRepository;
-import fu.edu.mss301.digilib.identity.infrastructure.persistence.UserRoleJpaRepository;
-import java.math.BigDecimal;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,16 +30,16 @@ import org.springframework.util.StringUtils;
 @Service
 public class IdentityService {
 
-	private final UserJpaRepository userRepository;
-	private final RoleJpaRepository roleRepository;
-	private final PermissionJpaRepository permissionRepository;
-	private final UserRoleJpaRepository userRoleRepository;
-	private final RolePermissionJpaRepository rolePermissionRepository;
+	private final UserRepository userRepository;
+	private final RoleRepository roleRepository;
+	private final PermissionRepository permissionRepository;
+	private final UserRoleRepository userRoleRepository;
+	private final RolePermissionRepository rolePermissionRepository;
 	private final KeycloakUserClient keycloakUserClient;
 
-	public IdentityService(UserJpaRepository userRepository, RoleJpaRepository roleRepository,
-			PermissionJpaRepository permissionRepository, UserRoleJpaRepository userRoleRepository,
-			RolePermissionJpaRepository rolePermissionRepository, KeycloakUserClient keycloakUserClient) {
+	public IdentityService(UserRepository userRepository, RoleRepository roleRepository,
+			PermissionRepository permissionRepository, UserRoleRepository userRoleRepository,
+			RolePermissionRepository rolePermissionRepository, KeycloakUserClient keycloakUserClient) {
 		this.userRepository = userRepository;
 		this.roleRepository = roleRepository;
 		this.permissionRepository = permissionRepository;
@@ -50,14 +53,13 @@ public class IdentityService {
 		validateUniqueUser(request);
 		String keycloakUserId = keycloakUserClient.createUser(request);
 		try {
-			User user = new User(request.email(), request.firstName(), request.lastName(), request.phone(),
-					request.avatarUrl(), request.username(), defaultString(request.userStatus(), "ACTIVE"),
-					defaultString(request.authType(), "KEYCLOAK"));
-			Member member = new Member(user, request.membershipType(), request.memberCode(), request.borrowingLimit(),
-					request.loanPeriodDays(), request.outstandingBalance() == null ? BigDecimal.ZERO
-							: request.outstandingBalance());
-			user.setMember(member);
-			return UserResponse.from(userRepository.save(user));
+			UserAccountAggregate aggregate = UserAccountAggregate.create(new EmailAddress(request.email()),
+					request.firstName(), request.lastName(), new PhoneNumber(request.phone()), request.avatarUrl(),
+					new Username(request.username()), defaultString(request.userStatus(), "ACTIVE"),
+					defaultString(request.authType(), "KEYCLOAK"), request.membershipType(),
+					new MemberCode(request.memberCode()), request.borrowingLimit(), request.loanPeriodDays(),
+					request.outstandingBalance());
+			return UserResponse.from(userRepository.save(aggregate.user()));
 		}
 		catch (RuntimeException ex) {
 			keycloakUserClient.deleteUser(keycloakUserId);
@@ -76,7 +78,8 @@ public class IdentityService {
 		if (roleRepository.existsByRoleName(request.roleName())) {
 			throw new DuplicateResourceException("Role name already exists: " + request.roleName());
 		}
-		return RoleResponse.from(roleRepository.save(new Role(request.roleName(), request.description())));
+		RoleAccessAggregate aggregate = RoleAccessAggregate.createRole(request.roleName(), request.description());
+		return RoleResponse.from(roleRepository.save(aggregate.role()));
 	}
 
 	@Transactional
@@ -84,8 +87,9 @@ public class IdentityService {
 		if (permissionRepository.existsByPermissionName(request.permissionName())) {
 			throw new DuplicateResourceException("Permission name already exists: " + request.permissionName());
 		}
-		return PermissionResponse.from(permissionRepository
-				.save(new Permission(request.permissionName(), request.resource(), request.action())));
+		Permission permission = RoleAccessAggregate.createPermission(request.permissionName(),
+				new PermissionScope(request.resource(), request.action()));
+		return PermissionResponse.from(permissionRepository.save(permission));
 	}
 
 	@Transactional
@@ -95,7 +99,7 @@ public class IdentityService {
 		Role role = roleRepository.findById(roleId)
 				.orElseThrow(() -> new ResourceNotFoundException("Role not found: " + roleId));
 		if (!userRoleRepository.existsByUserUserIdAndRoleRoleId(userId, roleId)) {
-			userRoleRepository.save(new UserRole(user, role));
+			userRoleRepository.save(UserAccountAggregate.from(user).assignRole(role));
 		}
 		return getUser(userId);
 	}
@@ -107,7 +111,7 @@ public class IdentityService {
 		Permission permission = permissionRepository.findById(permissionId)
 				.orElseThrow(() -> new ResourceNotFoundException("Permission not found: " + permissionId));
 		if (!rolePermissionRepository.existsByRoleRoleIdAndPermissionPermissionId(roleId, permissionId)) {
-			rolePermissionRepository.save(new RolePermission(role, permission));
+			rolePermissionRepository.save(RoleAccessAggregate.from(role).assignPermission(permission));
 		}
 		return RoleResponse.from(role);
 	}
