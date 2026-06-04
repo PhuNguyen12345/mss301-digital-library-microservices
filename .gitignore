@@ -22,3 +22,7 @@ buildNumber.properties
 # Bỏ qua các file môi trường và log
 *.log
 .env
+
+# bo qua file ca nhan
+/markdown-notes
+/.github/agents
