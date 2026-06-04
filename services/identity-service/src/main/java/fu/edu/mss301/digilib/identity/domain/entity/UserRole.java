@@ -9,10 +9,19 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
 import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
 @Table(name = "user_roles", uniqueConstraints = @UniqueConstraint(columnNames = { "user_id", "role_id" }))
 public class UserRole {
 
@@ -31,12 +40,11 @@ public class UserRole {
 	@Column(name = "assigned_at", nullable = false)
 	private LocalDateTime assignedAt;
 
-	protected UserRole() {
-	}
-
 	public UserRole(User user, Role role) {
 		this.user = user;
 		this.role = role;
+		user.addUserRole(this);
+		role.addUserRole(this);
 	}
 
 	@PrePersist
@@ -45,21 +53,5 @@ public class UserRole {
 			userRoleId = UUID.randomUUID();
 		}
 		assignedAt = LocalDateTime.now();
-	}
-
-	public UUID getUserRoleId() {
-		return userRoleId;
-	}
-
-	public User getUser() {
-		return user;
-	}
-
-	public Role getRole() {
-		return role;
-	}
-
-	public LocalDateTime getAssignedAt() {
-		return assignedAt;
 	}
 }

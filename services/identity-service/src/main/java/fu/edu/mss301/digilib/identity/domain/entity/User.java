@@ -10,12 +10,21 @@ import jakarta.persistence.OneToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
 import java.time.LocalDateTime;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.UUID;
 
 @Entity
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
 @Table(name = "users")
 public class User {
 
@@ -62,11 +71,8 @@ public class User {
 	@OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
 	private Set<UserRole> userRoles = new LinkedHashSet<>();
 
-	protected User() {
-	}
-
-	public User(String email, String firstName, String lastName, String phone, String avatarUrl, String username,
-			String userStatus, String authType) {
+	public User(String email, String firstName, String lastName, String phone, String avatarUrl,
+			String username, String userStatus, String authType) {
 		this.email = email;
 		this.firstName = firstName;
 		this.lastName = lastName;
@@ -75,6 +81,17 @@ public class User {
 		this.username = username;
 		this.userStatus = userStatus;
 		this.authType = authType;
+	}
+
+	public void setMember(Member member) {
+		this.member = member;
+		if (member != null && member.getUser() != this) {
+			member.setUser(this);
+		}
+	}
+
+	public void addUserRole(UserRole userRole) {
+		userRoles.add(userRole);
 	}
 
 	@PrePersist
@@ -90,65 +107,5 @@ public class User {
 	@PreUpdate
 	void preUpdate() {
 		updatedAt = LocalDateTime.now();
-	}
-
-	public UUID getUserId() {
-		return userId;
-	}
-
-	public String getEmail() {
-		return email;
-	}
-
-	public String getFirstName() {
-		return firstName;
-	}
-
-	public String getLastName() {
-		return lastName;
-	}
-
-	public String getPhone() {
-		return phone;
-	}
-
-	public String getAvatarUrl() {
-		return avatarUrl;
-	}
-
-	public String getUsername() {
-		return username;
-	}
-
-	public LocalDateTime getCreatedAt() {
-		return createdAt;
-	}
-
-	public LocalDateTime getUpdatedAt() {
-		return updatedAt;
-	}
-
-	public LocalDateTime getLastLogin() {
-		return lastLogin;
-	}
-
-	public String getUserStatus() {
-		return userStatus;
-	}
-
-	public String getAuthType() {
-		return authType;
-	}
-
-	public Member getMember() {
-		return member;
-	}
-
-	public Set<UserRole> getUserRoles() {
-		return userRoles;
-	}
-
-	public void setMember(Member member) {
-		this.member = member;
 	}
 }

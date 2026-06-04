@@ -6,11 +6,20 @@ import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
 import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.UUID;
 
 @Entity
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
 @Table(name = "roles")
 public class Role {
 
@@ -30,12 +39,17 @@ public class Role {
 	@OneToMany(mappedBy = "role")
 	private Set<RolePermission> rolePermissions = new LinkedHashSet<>();
 
-	protected Role() {
-	}
-
 	public Role(String roleName, String description) {
 		this.roleName = roleName;
 		this.description = description;
+	}
+
+	public void addUserRole(UserRole userRole) {
+		userRoles.add(userRole);
+	}
+
+	public void addRolePermission(RolePermission rolePermission) {
+		rolePermissions.add(rolePermission);
 	}
 
 	@PrePersist
@@ -43,21 +57,5 @@ public class Role {
 		if (roleId == null) {
 			roleId = UUID.randomUUID();
 		}
-	}
-
-	public UUID getRoleId() {
-		return roleId;
-	}
-
-	public String getRoleName() {
-		return roleName;
-	}
-
-	public String getDescription() {
-		return description;
-	}
-
-	public Set<RolePermission> getRolePermissions() {
-		return rolePermissions;
 	}
 }

@@ -1,11 +1,12 @@
 package fu.edu.mss301.digilib.identity.infrastructure.persistence;
 
 import fu.edu.mss301.digilib.identity.domain.entity.User;
+import fu.edu.mss301.digilib.identity.domain.repository.UserRepository;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface UserJpaRepository extends JpaRepository<User, UUID> {
+public interface UserJpaRepository extends JpaRepository<User, UUID>, UserRepository {
 
 	boolean existsByEmail(String email);
 

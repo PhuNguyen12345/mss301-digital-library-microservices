@@ -9,9 +9,18 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
 import java.util.UUID;
 
 @Entity
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
 @Table(name = "role_permissions", uniqueConstraints = @UniqueConstraint(columnNames = { "role_id", "permission_id" }))
 public class RolePermission {
 
@@ -27,12 +36,11 @@ public class RolePermission {
 	@JoinColumn(name = "permission_id", nullable = false)
 	private Permission permission;
 
-	protected RolePermission() {
-	}
-
 	public RolePermission(Role role, Permission permission) {
 		this.role = role;
 		this.permission = permission;
+		role.addRolePermission(this);
+		permission.addRolePermission(this);
 	}
 
 	@PrePersist
@@ -40,17 +48,5 @@ public class RolePermission {
 		if (rolePermissionId == null) {
 			rolePermissionId = UUID.randomUUID();
 		}
-	}
-
-	public UUID getRolePermissionId() {
-		return rolePermissionId;
-	}
-
-	public Role getRole() {
-		return role;
-	}
-
-	public Permission getPermission() {
-		return permission;
 	}
 }

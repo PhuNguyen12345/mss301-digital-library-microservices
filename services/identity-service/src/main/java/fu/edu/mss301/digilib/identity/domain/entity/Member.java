@@ -8,11 +8,20 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
 @Table(name = "members")
 public class Member {
 
@@ -45,11 +54,8 @@ public class Member {
 	@Column(name = "outstanding_balance")
 	private BigDecimal outstandingBalance;
 
-	protected Member() {
-	}
-
-	public Member(User user, String membershipType, String memberCode, Integer borrowingLimit, Integer loanPeriodDays,
-			BigDecimal outstandingBalance) {
+	public Member(User user, String membershipType, String memberCode, Integer borrowingLimit,
+			Integer loanPeriodDays, BigDecimal outstandingBalance) {
 		this.user = user;
 		this.membershipType = membershipType;
 		this.memberCode = memberCode;
@@ -66,39 +72,4 @@ public class Member {
 		createdAt = LocalDateTime.now();
 	}
 
-	public UUID getMemberId() {
-		return memberId;
-	}
-
-	public User getUser() {
-		return user;
-	}
-
-	public String getMembershipType() {
-		return membershipType;
-	}
-
-	public String getMemberCode() {
-		return memberCode;
-	}
-
-	public Integer getBorrowingLimit() {
-		return borrowingLimit;
-	}
-
-	public Integer getLoanPeriodDays() {
-		return loanPeriodDays;
-	}
-
-	public LocalDateTime getCreatedAt() {
-		return createdAt;
-	}
-
-	public LocalDateTime getUpdatedDate() {
-		return updatedDate;
-	}
-
-	public BigDecimal getOutstandingBalance() {
-		return outstandingBalance;
-	}
 }
