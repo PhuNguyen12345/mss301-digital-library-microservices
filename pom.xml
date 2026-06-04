@@ -22,6 +22,7 @@
     <modules>
         <module>infra/eureka-server</module>
         <module>infra/api-gateway</module>
+        <module>infra/config-server</module>
         <module>services/catalog-service</module>
         <module>services/fine-service</module>
         <module>services/loan-service</module>
