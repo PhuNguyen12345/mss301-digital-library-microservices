@@ -7,18 +7,28 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import fu.edu.mss301.digilib.identity.api.dto.AuthorizationCheckRequest;
+import fu.edu.mss301.digilib.identity.api.dto.AuthorizationCheckResponse;
+import fu.edu.mss301.digilib.identity.api.dto.MemberBalanceRequest;
+import fu.edu.mss301.digilib.identity.api.dto.MemberBorrowingEligibilityResponse;
 import fu.edu.mss301.digilib.identity.api.dto.PermissionCreateRequest;
 import fu.edu.mss301.digilib.identity.api.dto.RoleCreateRequest;
 import fu.edu.mss301.digilib.identity.api.dto.UserCreateRequest;
 import fu.edu.mss301.digilib.identity.api.dto.UserResponse;
+import fu.edu.mss301.digilib.identity.domain.entity.Member;
 import fu.edu.mss301.digilib.identity.domain.entity.Permission;
 import fu.edu.mss301.digilib.identity.domain.entity.Role;
+import fu.edu.mss301.digilib.identity.domain.entity.RolePermission;
 import fu.edu.mss301.digilib.identity.domain.entity.User;
+import fu.edu.mss301.digilib.identity.domain.entity.UserRole;
 import fu.edu.mss301.digilib.identity.domain.repository.PermissionRepository;
 import fu.edu.mss301.digilib.identity.domain.repository.RolePermissionRepository;
 import fu.edu.mss301.digilib.identity.domain.repository.RoleRepository;
 import fu.edu.mss301.digilib.identity.domain.repository.UserRepository;
 import fu.edu.mss301.digilib.identity.domain.repository.UserRoleRepository;
+import fu.edu.mss301.digilib.identity.domain.service.AuthenticationDomainService;
+import fu.edu.mss301.digilib.identity.domain.service.AuthorizationDomainService;
+import fu.edu.mss301.digilib.identity.domain.service.MemberManagementDomainService;
 import fu.edu.mss301.digilib.identity.infrastructure.keycloak.KeycloakUserClient;
 import java.math.BigDecimal;
 import java.util.Optional;
@@ -55,7 +65,8 @@ class IdentityServiceTests {
 	@BeforeEach
 	void setUp() {
 		identityService = new IdentityService(userRepository, roleRepository, permissionRepository, userRoleRepository,
-				rolePermissionRepository, keycloakUserClient);
+				rolePermissionRepository, keycloakUserClient, new AuthenticationDomainService(),
+				new AuthorizationDomainService(), new MemberManagementDomainService());
 	}
 
 	@Test
@@ -130,8 +141,67 @@ class IdentityServiceTests {
 				.isInstanceOf(DuplicateResourceException.class);
 	}
 
+	@Test
+	void recordSuccessfulLoginUpdatesLastLoginForActiveUser() {
+		UUID userId = UUID.randomUUID();
+		User user = user();
+		when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+		when(userRepository.save(user)).thenReturn(user);
+
+		assertThat(identityService.recordSuccessfulLogin(userId).lastLogin()).isNotNull();
+	}
+
+	@Test
+	void authorizationCheckGrantsWhenRoleHasPermission() {
+		UUID userId = UUID.randomUUID();
+		User user = user();
+		Role role = new Role("LIBRARIAN", "Library staff");
+		Permission permission = new Permission("BOOK_READ", "book", "read");
+		new UserRole(user, role);
+		new RolePermission(role, permission);
+		when(userRepository.findWithRolesByUserId(userId)).thenReturn(Optional.of(user));
+
+		AuthorizationCheckResponse response = identityService.checkAuthorization(userId,
+				new AuthorizationCheckRequest("book", "read"));
+
+		assertThat(response.granted()).isTrue();
+	}
+
+	@Test
+	void chargeMemberIncreasesOutstandingBalance() {
+		UUID userId = UUID.randomUUID();
+		User user = userWithMember(BigDecimal.ZERO);
+		when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+		when(userRepository.save(user)).thenReturn(user);
+
+		assertThat(identityService.chargeMember(userId, new MemberBalanceRequest(BigDecimal.TEN))
+				.outstandingBalance()).isEqualByComparingTo(BigDecimal.TEN);
+	}
+
+	@Test
+	void borrowingEligibilityUsesMemberLimitAndActiveLoans() {
+		UUID userId = UUID.randomUUID();
+		User user = userWithMember(BigDecimal.ZERO);
+		when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+
+		MemberBorrowingEligibilityResponse response = identityService.checkBorrowingEligibility(userId, 4);
+
+		assertThat(response.eligible()).isTrue();
+		assertThat(response.availableSlots()).isEqualTo(1);
+	}
+
 	private UserCreateRequest request() {
 		return new UserCreateRequest("user@example.com", "First", "Last", "0123456789", null, "user",
 				"secret-password", "ACTIVE", "KEYCLOAK", "STANDARD", "M0001", 5, 14, BigDecimal.ZERO);
+	}
+
+	private User user() {
+		return new User("a@example.com", "A", "User", null, null, "auser", "ACTIVE", "KEYCLOAK");
+	}
+
+	private User userWithMember(BigDecimal outstandingBalance) {
+		User user = user();
+		user.setMember(new Member(user, "STANDARD", "M0001", 5, 14, outstandingBalance));
+		return user;
 	}
 }

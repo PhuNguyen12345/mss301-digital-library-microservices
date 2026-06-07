@@ -94,6 +94,22 @@ public class User {
 		userRoles.add(userRole);
 	}
 
+	public void recordSuccessfulLogin(LocalDateTime loginAt) {
+		lastLogin = loginAt == null ? LocalDateTime.now() : loginAt;
+	}
+
+	public boolean hasStatus(String status) {
+		return userStatus != null && userStatus.equalsIgnoreCase(status);
+	}
+
+	public void activate() {
+		userStatus = "ACTIVE";
+	}
+
+	public void suspend() {
+		userStatus = "SUSPENDED";
+	}
+
 	@PrePersist
 	void prePersist() {
 		if (userId == null) {

@@ -7,6 +7,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -64,12 +65,47 @@ public class Member {
 		this.outstandingBalance = outstandingBalance;
 	}
 
+	public void updatePolicy(String membershipType, Integer borrowingLimit, Integer loanPeriodDays) {
+		this.membershipType = membershipType;
+		this.borrowingLimit = borrowingLimit;
+		this.loanPeriodDays = loanPeriodDays;
+	}
+
+	public void increaseOutstandingBalance(BigDecimal amount) {
+		outstandingBalance = currentBalance().add(amount);
+	}
+
+	public void decreaseOutstandingBalance(BigDecimal amount) {
+		outstandingBalance = currentBalance().subtract(amount);
+	}
+
+	public boolean hasBorrowingCapacity(int activeLoans) {
+		return borrowingLimit == null || activeLoans < borrowingLimit;
+	}
+
+	public int availableBorrowingSlots(int activeLoans) {
+		if (borrowingLimit == null) {
+			return Integer.MAX_VALUE;
+		}
+		return Math.max(0, borrowingLimit - activeLoans);
+	}
+
+	private BigDecimal currentBalance() {
+		return outstandingBalance == null ? BigDecimal.ZERO : outstandingBalance;
+	}
+
 	@PrePersist
 	void prePersist() {
 		if (memberId == null) {
 			memberId = UUID.randomUUID();
 		}
 		createdAt = LocalDateTime.now();
+		updatedDate = createdAt;
+	}
+
+	@PreUpdate
+	void preUpdate() {
+		updatedDate = LocalDateTime.now();
 	}
 
 }

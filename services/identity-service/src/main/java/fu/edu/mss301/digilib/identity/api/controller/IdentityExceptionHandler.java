@@ -21,6 +21,16 @@ public class IdentityExceptionHandler {
 		return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ApiError(Instant.now(), ex.getMessage()));
 	}
 
+	@ExceptionHandler(IllegalArgumentException.class)
+	ResponseEntity<ApiError> badRequest(IllegalArgumentException ex) {
+		return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ApiError(Instant.now(), ex.getMessage()));
+	}
+
+	@ExceptionHandler(IllegalStateException.class)
+	ResponseEntity<ApiError> conflict(IllegalStateException ex) {
+		return ResponseEntity.status(HttpStatus.CONFLICT).body(new ApiError(Instant.now(), ex.getMessage()));
+	}
+
 	record ApiError(Instant timestamp, String message) {
 	}
 }
