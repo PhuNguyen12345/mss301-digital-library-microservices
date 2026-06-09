@@ -28,7 +28,6 @@
         <module>services/member-service</module>
         <module>services/notification-service</module>
         <module>shared/common-web</module>
-        <module>services/identity-service</module>
     </modules>
 
     <dependencyManagement>
