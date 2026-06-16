@@ -8,8 +8,8 @@ spring:
   # Reactive Database Setup via R2DBC
   r2dbc:
     url: r2dbc:postgresql://localhost:5432/digilib_member
-    username: postgres
-    password: your_db_password
+    username: simpi
+    password: 1231
 
   # Security Decoding Parameters pointing to your Keycloak Setup
   security:

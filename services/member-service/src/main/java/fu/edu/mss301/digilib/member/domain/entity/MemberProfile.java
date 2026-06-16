@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.Transient;
 import org.springframework.data.domain.Persistable;
+import org.springframework.data.relational.core.mapping.Column;
 import org.springframework.data.relational.core.mapping.Table;
 
 import java.math.BigDecimal;
@@ -20,16 +21,26 @@ public class MemberProfile implements Persistable<String> {
     @Id
     private String id; // Matches Keycloak sub field
     private String email;
+    @Column("first_name")
     private String firstName;
+    @Column("last_name")
     private String lastName;
     private String phone;
+    @Column("member_type")
     private String memberType;
+    @Column("member_code")
     private String memberCode;
+    @Column("borrowing_limit")
     private int borrowingLimit;
+    @Column("loan_period_days")
     private int loanPeriodDays;
+    @Column("outstanding_balance")
     private BigDecimal outstandingBalance;
+    @Column("avatar_key")
     private String avatarKey;
+    @Column("created_at")
     private Instant createdAt;
+    @Column("updated_at")
     private Instant updatedAt;
 
     @Transient
