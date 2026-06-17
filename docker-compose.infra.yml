@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  keycloak-db:
+    image: postgres:16-alpine
+    container_name: digilib-keycloak-db
+    environment:
+      POSTGRES_DB: keycloak-digilib
+      POSTGRES_USER: simpi
+      POSTGRES_PASSWORD: "1231"
+    ports:
+      - "5433:5432"
+    volumes:
+      - keycloak_db_data:/var/lib/postgresql/data
+    networks:
+      - digilib-network
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.1 # Production-ready Quay image
+    container_name: digilib-keycloak
+    command: start-dev
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: "1231"
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://keycloak-db:5432/keycloak-digilib
+      KC_DB_USERNAME: simpi
+      KC_DB_PASSWORD: "1231"
+      KC_FEATURES: token-exchange
+    ports:
+      - "8080:8080"
+    depends_on:
+      - keycloak-db
+    networks:
+      - digilib-network
+
+volumes:
+  keycloak_db_data:
+
+networks:
+  digilib-network:
+    driver: bridge
