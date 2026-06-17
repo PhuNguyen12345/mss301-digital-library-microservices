@@ -1,0 +1,43 @@
+server:
+  port: 8080
+
+spring:
+  cloud:
+    gateway:
+      routes: 
+        - id: catalog-service 
+          uri: lb://catalog-service 
+          predicates: 
+            - name: Path 
+              args: 
+                pattern: /api/catalog/** 
+            - name: Header 
+              args: 
+                header: X-Client-Type 
+                regex: web 
+
+
+        - id: loan-service 
+          uri: lb://loan-service 
+          predicates: 
+            - name: Path 
+              args: 
+                pattern: /api/loan/** 
+            - name: Header 
+              args: 
+                header: X-Client-Type 
+                regex: web   
+  
+management:
+  endpoints:
+    web:
+      exposure:
+        includes:
+          - health
+          - info
+          - gateway
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
