@@ -1,0 +1,25 @@
+server:
+  port: 8083
+
+spring:
+  application:
+    name: member-service
+
+  # Reactive Database Setup via R2DBC
+  r2dbc:
+    url: r2dbc:postgresql://localhost:5432/digilib_member
+    username: simpi
+    password: 1231
+
+  # Security Decoding Parameters pointing to your Keycloak Setup
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://localhost:8080/realms/digilib-realm
+          jwk-set-uri: http://localhost:8080/realms/digilib-realm/protocol/openid-connect/certs
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
