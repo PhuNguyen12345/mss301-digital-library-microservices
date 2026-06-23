@@ -61,6 +61,11 @@ public class ManageDigitalResourceUseCase {
     }
 
     @Transactional(readOnly = true)
+    public void ensureBookExists(Long bookId) {
+        findAggregate(bookId);
+    }
+
+    @Transactional(readOnly = true)
     public DigitalResource access(DigitalResourceCommand command) {
         BookAggregate aggregate = findAggregate(command.getBookId());
         return aggregate.accessDigitalResource(

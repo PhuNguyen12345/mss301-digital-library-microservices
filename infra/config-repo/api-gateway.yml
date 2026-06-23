@@ -4,29 +4,20 @@ server:
 spring:
   cloud:
     gateway:
-      routes: 
-        - id: catalog-service 
-          uri: lb://catalog-service 
-          predicates: 
-            - name: Path 
-              args: 
-                pattern: /api/catalog/** 
-            - name: Header 
-              args: 
-                header: X-Client-Type 
-                regex: web 
+      mvc:
+        routes:
+          - id: catalog-service
+            uri: lb://catalog-service
+            predicates:
+              - Path=/api/catalog/**
+              - Header=X-Client-Type,web
 
 
-        - id: loan-service 
-          uri: lb://loan-service 
-          predicates: 
-            - name: Path 
-              args: 
-                pattern: /api/loan/** 
-            - name: Header 
-              args: 
-                header: X-Client-Type 
-                regex: web   
+          - id: loan-service
+            uri: lb://loan-service
+            predicates:
+              - Path=/api/loan/**
+              - Header=X-Client-Type,web
   
 management:
   endpoints:

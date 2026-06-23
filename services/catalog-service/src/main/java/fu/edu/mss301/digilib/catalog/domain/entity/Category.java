@@ -4,8 +4,6 @@ import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.SQLRestriction;
 
-import java.util.UUID;
-
 @Getter @Setter
 @Entity
 @NoArgsConstructor @AllArgsConstructor
@@ -23,4 +21,8 @@ public class Category {
 
     @Column(columnDefinition = "TEXT", nullable = false)
     private String description;
+
+    @Builder.Default
+    @Column(name = "is_deleted", nullable = false)
+    private Boolean isDeleted = false;
 }

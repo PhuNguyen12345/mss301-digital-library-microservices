@@ -6,6 +6,7 @@ import fu.edu.mss301.digilib.catalog.api.dto.BookStatusRequest;
 import fu.edu.mss301.digilib.catalog.api.dto.BookUpdateRequest;
 import fu.edu.mss301.digilib.catalog.application.command.BookCommand;
 import fu.edu.mss301.digilib.catalog.application.usecase.ManageBookUseCase;
+import fu.edu.mss301.digilib.catalog.infrastructure.storage.FileStorageService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -18,7 +19,9 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.net.URI;
 @RestController
@@ -27,6 +30,7 @@ import java.net.URI;
 public class BookController {
 
     private final ManageBookUseCase manageBookUseCase;
+    private final FileStorageService fileStorageService;
 
     @GetMapping("/books")
     public Page<BookResponse> getBooks(Pageable pageable) {
@@ -91,6 +95,33 @@ public class BookController {
                         request.getAvailabilityStatus(),
                         null,
                         request.getUserId())).getBook());
+    }
+
+    @PostMapping(value = "/books/{bookId}/cover", consumes = "multipart/form-data")
+    public BookResponse uploadBookCover(
+            @PathVariable Long bookId,
+            @RequestPart("file") MultipartFile file,
+            @RequestParam(required = false) Integer userId) {
+        manageBookUseCase.findById(bookId);
+        String coverImageUrl = fileStorageService.storeBookCover(file, bookId);
+
+        return BookResponse.from(
+                manageBookUseCase.updateCoverImage(new BookCommand(
+                        bookId,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        coverImageUrl,
+                        null,
+                        null,
+                        null,
+                        null,
+                        userId)).getBook());
     }
 
     private BookCommand toCreateBookCommand(BookCreateRequest request) {

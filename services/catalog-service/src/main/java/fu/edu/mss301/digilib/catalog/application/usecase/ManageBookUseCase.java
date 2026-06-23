@@ -93,6 +93,12 @@ public class ManageBookUseCase {
         return bookRepository.save(aggregate);
     }
 
+    public BookAggregate updateCoverImage(BookCommand command) {
+        BookAggregate aggregate = findAggregate(command.getBookId());
+        aggregate.updateCoverImage(command.getCoverImageUrl(), command.getUserId());
+        return bookRepository.save(aggregate);
+    }
+
     public BookAggregate delete(BookCommand command) {
         BookAggregate aggregate = findAggregate(command.getBookId());
         aggregate.deleteBook(command.getUserId());

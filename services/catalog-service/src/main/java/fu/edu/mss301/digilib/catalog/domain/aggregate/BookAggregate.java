@@ -129,6 +129,19 @@ public class BookAggregate {
         addAuditLog(BookAuditLog.AuditAction.UPDATE, userId);
     }
 
+    public void updateCoverImage(String coverImageUrl, Integer userId) {
+        if (coverImageUrl == null || coverImageUrl.trim().isEmpty()) {
+            throw new IllegalArgumentException("Cover image URL cannot be empty");
+        }
+
+        book.setCoverImageUrl(coverImageUrl);
+        bookContent = new BookContent(book.getDescription(), coverImageUrl);
+
+        if (userId != null) {
+            addAuditLog(BookAuditLog.AuditAction.UPDATE, userId);
+        }
+    }
+
     public void assignCategory(Category category, Integer userId) {
         if (category == null) {
             throw new IllegalArgumentException("Category cannot be null");
