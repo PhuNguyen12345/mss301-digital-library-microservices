@@ -8,7 +8,7 @@
 		<version>1.0.0</version>
 		<relativePath>../../pom.xml</relativePath> <!-- lookup parent from repository -->
 	</parent>
-
+	
 	<artifactId>api-gateway</artifactId>
 	<name>api-gateway</name>
 
@@ -50,6 +50,14 @@
 		<dependency>
 			<groupId>org.springframework.cloud</groupId>
 			<artifactId>spring-cloud-starter-circuitbreaker-reactor-resilience4j</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>io.github.resilience4j</groupId>
+			<artifactId>resilience4j-spring-boot3</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>io.github.resilience4j</groupId>
+			<artifactId>resilience4j-micrometer</artifactId>
 		</dependency>
 	</dependencies>
 
