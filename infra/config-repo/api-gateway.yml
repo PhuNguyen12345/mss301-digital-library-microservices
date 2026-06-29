@@ -11,7 +11,23 @@ spring:
             predicates:
               - Path=/api/catalog/**
               - Header=X-Client-Type,web
-
+            filters:
+              # 1. Cấu hình Retry
+              - name: Retry
+                args:
+                  retries: 3
+                  statuses: BAD_GATEWAY, GATEWAY_TIMEOUT, INTERNAL_SERVER_ERROR
+                  methods: GET
+                  backoff:
+                    firstBackoff: 500ms
+                    maxBackoff: 2000ms
+                    factor: 2
+                    basedOnPreviousValue: false
+              # 2. Cấu hình Circuit Breaker & Fallback
+              - name: CircuitBreaker
+                args:
+                  name: catalogCircuitBreaker
+                  fallbackUri: forward:/fallback/catalog
 
           - id: loan-service
             uri: lb://loan-service
@@ -27,6 +43,20 @@ management:
           - health
           - info
           - gateway
+
+# Cấu hình ngưỡng của Resilience4j
+resilience4j:
+  circuitbreaker:
+    instances:
+      catalogCircuitBreaker:
+        slidingWindowSize: 5          # Dựa trên 5 request gần nhất
+        failureRateThreshold: 50      # Nếu > 50% request lỗi -> OPEN
+        waitDurationInOpenState: 10s  # Đợi 10s trong trạng thái OPEN trước khi sang HALF_OPEN
+        permittedNumberOfCallsInHalfOpenState: 3
+  timelimiter:
+    instances:
+      catalogCircuitBreaker:
+        timeoutDuration: 2s           # Timeout 2 giây cho Kịch bản 2
 
 eureka:
   client:
