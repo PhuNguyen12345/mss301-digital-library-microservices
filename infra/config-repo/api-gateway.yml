@@ -5,6 +5,12 @@ spring:
   cloud:
     gateway:
       routes:
+        # Route DÀNH RIÊNG để test Bulkhead (Không cắm Timeout 2s, Không dùng Retry)
+        - id: catalog-bulkhead-demo
+          uri: lb://CATALOG-SERVICE
+          predicates:
+            - Path=/api/catalog/demo/bulkhead
+
         - id: catalog-service
           uri: lb://CATALOG-SERVICE
           metadata:
