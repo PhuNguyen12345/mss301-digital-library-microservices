@@ -6,7 +6,7 @@ spring:
     gateway:
       routes:
         - id: catalog-service
-          uri: lb://catalog-service
+          uri: lb://CATALOG-SERVICE
           predicates:
             - Path=/api/catalog/**
             - Header=X-Client-Type,web
@@ -29,7 +29,7 @@ spring:
                 fallbackUri: forward:/fallback/catalog
 
         - id: loan-service
-          uri: lb://loan-service
+          uri: lb://LOAN-SERVICE
           predicates:
             - Path=/api/loan/**
             - Header=X-Client-Type,web
