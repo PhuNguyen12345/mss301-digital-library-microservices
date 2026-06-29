@@ -6,7 +6,6 @@ import java.math.BigDecimal;
 import java.time.Instant;
 
 public record MemberResponse(
-        String id,
         String email,
         String firstName,
         String lastName,
@@ -22,7 +21,6 @@ public record MemberResponse(
 ) {
     public static MemberResponse from(MemberProfile profile) {
         return new MemberResponse(
-                profile.getId(),
                 profile.getEmail(),
                 profile.getFirstName(),
                 profile.getLastName(),
