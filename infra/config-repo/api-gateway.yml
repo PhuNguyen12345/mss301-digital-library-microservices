@@ -36,6 +36,12 @@ spring:
               - Header=X-Client-Type,web
   
 management:
+  endpoint:
+    health:
+      show-details: always
+  health:
+    circuitbreakers:
+      enabled: true
   endpoints:
     web:
       exposure:
@@ -43,6 +49,8 @@ management:
           - health
           - info
           - gateway
+          - metrics
+          - circuitbreakers
 
 # Cấu hình ngưỡng của Resilience4j
 resilience4j:
