@@ -65,8 +65,9 @@ resilience4j:
         registerHealthIndicator: true # Ép hiển thị số liệu của circuit breaker ở endpoint /actuator/health
         slidingWindowSize: 5          # Dựa trên 5 request gần nhất
         failureRateThreshold: 50      # Nếu > 50% request lỗi -> OPEN
-        waitDurationInOpenState: 10s  # Đợi 10s trong trạng thái OPEN trước khi sang HALF_OPEN
-        permittedNumberOfCallsInHalfOpenState: 3
+        waitDurationInOpenState: 5s  # Đợi 5s trong trạng thái OPEN trước khi sang HALF_OPEN
+        permittedNumberOfCallsInHalfOpenState: 3 # giới hạn số lần gọi khi ở trạng thái HALF_OPEN
+        automaticTransitionFromOpenToHalfOpenEnabled: true # Bật tự động chuyển mạch sau khi hết thời gian chờ
   timelimiter:
     instances:
       catalogCircuitBreaker:

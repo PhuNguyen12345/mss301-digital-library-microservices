@@ -11,6 +11,10 @@ spring:
     username: ${DB_USERNAME:simpi}
     password: ${DB_PASSWORD:1231}
 
+  sql:
+    init:
+      mode: always
+
   # Security Decoding Parameters pointing to your Keycloak Setup
   security:
     oauth2:
