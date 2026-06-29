@@ -11,7 +11,12 @@ spring:
             - Path=/api/catalog/**
             - Header=X-Client-Type,web
           filters:
-            # 1. Cấu hình Retry
+            # 1. Cấu hình Circuit Breaker & Fallback (Đặt lên trên để bọc lấy Retry)
+            - name: CircuitBreaker
+              args:
+                name: catalogCircuitBreaker
+                fallbackUri: forward:/fallback/catalog
+            # 2. Cấu hình Retry (Đặt dưới để chạy sát với luồng gọi mạng)
             - name: Retry
               args:
                 retries: 3
@@ -22,11 +27,6 @@ spring:
                   maxBackoff: 2000ms
                   factor: 2
                   basedOnPreviousValue: false
-            # 2. Cấu hình Circuit Breaker & Fallback
-            - name: CircuitBreaker
-              args:
-                name: catalogCircuitBreaker
-                fallbackUri: forward:/fallback/catalog
 
         - id: loan-service
           uri: lb://LOAN-SERVICE
@@ -79,3 +79,7 @@ eureka:
   client:
     service-url:
       defaultZone: http://localhost:8761/eureka/
+
+logging:
+  level:
+    org.springframework.cloud.gateway.filter.factory.RetryGatewayFilterFactory: TRACE
