@@ -37,7 +37,7 @@ spring:
         - id: member-service
           uri: lb://MEMBER-SERVICE
           predicates:
-            - Path=/api/members/**
+            - Path=/api/v1/members/**
             - Header=X-Client-Type,web
   
 management:
