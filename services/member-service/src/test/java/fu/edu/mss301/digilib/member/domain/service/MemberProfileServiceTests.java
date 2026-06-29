@@ -25,13 +25,13 @@ class MemberProfileServiceTests {
         when(repository.findById("member-1")).thenReturn(Mono.empty());
         when(repository.save(any(MemberProfile.class))).thenAnswer(invocation -> Mono.just(invocation.getArgument(0)));
 
-        StepVerifier.create(service.registerOrFetchProfile("member-1", "reader@example.com", null, null, "STUDENT", 5, 14))
+        StepVerifier.create(service.registerOrFetchProfile("member-1", "reader@example.com", null, null))
                 .assertNext(profile -> {
                     assertThat(profile.getId()).isEqualTo("member-1");
                     assertThat(profile.getEmail()).isEqualTo("reader@example.com");
                     assertThat(profile.getFirstName()).isEqualTo("Library");
                     assertThat(profile.getLastName()).isEqualTo("Member");
-                    assertThat(profile.getMemberType()).isEqualTo("STUDENT");
+                    assertThat(profile.getMemberType()).isEqualTo("READER");
                     assertThat(profile.getBorrowingLimit()).isEqualTo(5);
                     assertThat(profile.getLoanPeriodDays()).isEqualTo(14);
                     assertThat(profile.getOutstandingBalance()).isEqualByComparingTo(BigDecimal.ZERO);

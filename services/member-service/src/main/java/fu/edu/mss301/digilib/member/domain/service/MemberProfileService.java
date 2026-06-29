@@ -25,7 +25,7 @@ public class MemberProfileService {
         return repository.findAll();
     }
 
-    public Mono<MemberProfile> registerOrFetchProfile(String id, String email, String firstName, String lastName, String memberType, Integer borrowingLimit, Integer loanPeriodDays) {
+    public Mono<MemberProfile> registerOrFetchProfile(String id, String email, String firstName, String lastName) {
         return repository.findById(id)
                 .switchIfEmpty(Mono.defer(() -> {
                     Instant now = Instant.now();
@@ -35,9 +35,7 @@ public class MemberProfileService {
                             .email(email)
                             .firstName(firstName != null ? firstName : "Library")
                             .lastName(lastName != null ? lastName : "Member")
-                            .borrowingLimit(borrowingLimit)
-                            .loanPeriodDays(loanPeriodDays)
-                            .memberType(memberType)
+                            .memberType("READER")
                             .memberCode("LIB-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase())
                             .borrowingLimit(5)
                             .loanPeriodDays(14)
