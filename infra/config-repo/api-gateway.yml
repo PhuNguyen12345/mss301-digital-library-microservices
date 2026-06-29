@@ -7,9 +7,11 @@ spring:
       routes:
         - id: catalog-service
           uri: lb://CATALOG-SERVICE
+          metadata:
+            response-timeout: 2000 # Timeout thực tế 2s áp dụng ở cấp HTTP Client
+            connect-timeout: 2000
           predicates:
             - Path=/api/catalog/**
-            - Header=X-Client-Type,web
           filters:
             # 1. Cấu hình Circuit Breaker & Fallback (Đặt lên trên để bọc lấy Retry)
             - name: CircuitBreaker
@@ -32,13 +34,11 @@ spring:
           uri: lb://LOAN-SERVICE
           predicates:
             - Path=/api/loan/**
-            - Header=X-Client-Type,web
 
         - id: member-service
           uri: lb://MEMBER-SERVICE
           predicates:
             - Path=/api/v1/members/**
-            - Header=X-Client-Type,web
   
 management:
   endpoint:
@@ -71,7 +71,7 @@ resilience4j:
   timelimiter:
     instances:
       catalogCircuitBreaker:
-        timeoutDuration: 2s           # Timeout 2 giây cho Kịch bản 2
+        timeoutDuration: 20s           # Đặt dài ra để không chém ngang quá trình Retry
 
 eureka:
   instance:
