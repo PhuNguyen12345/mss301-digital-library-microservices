@@ -4,31 +4,56 @@ server:
 spring:
   cloud:
     gateway:
-      routes: 
-        - id: catalog-service 
-          uri: lb://catalog-service 
-          predicates: 
-            - name: Path 
-              args: 
-                pattern: /api/catalog/** 
-            - name: Header 
-              args: 
-                header: X-Client-Type 
-                regex: web 
+      routes:
+        # Route DÀNH RIÊNG để test Bulkhead (Không cắm Timeout 2s, Không dùng Retry)
+        - id: catalog-bulkhead-demo
+          uri: lb://CATALOG-SERVICE
+          predicates:
+            - Path=/api/catalog/demo/bulkhead
 
+        - id: catalog-service
+          uri: lb://CATALOG-SERVICE
+          metadata:
+            response-timeout: 2000 # Timeout thực tế 2s áp dụng ở cấp HTTP Client
+            connect-timeout: 1000
+          predicates:
+            - Path=/api/catalog/**
+          filters:
+            # 1. Cấu hình Circuit Breaker & Fallback (Đặt lên trên để bọc lấy Retry)
+            - name: CircuitBreaker
+              args:
+                name: catalogCircuitBreaker
+                fallbackUri: forward:/fallback/catalog
+            # 2. Cấu hình Retry (Đặt dưới để chạy sát với luồng gọi mạng)
+            - name: Retry
+              args:
+                retries: 3
+                statuses: GATEWAY_TIMEOUT
+                methods: GET
+                exceptions: org.springframework.cloud.gateway.support.TimeoutException, io.netty.handler.timeout.ReadTimeoutException, java.util.concurrent.TimeoutException
+                backoff:
+                  firstBackoff: 500ms
+                  maxBackoff: 2000ms
+                  factor: 2
+                  basedOnPreviousValue: false
 
-        - id: loan-service 
-          uri: lb://loan-service 
-          predicates: 
-            - name: Path 
-              args: 
-                pattern: /api/loan/** 
-            - name: Header 
-              args: 
-                header: X-Client-Type 
-                regex: web   
+        - id: loan-service
+          uri: lb://LOAN-SERVICE
+          predicates:
+            - Path=/api/loan/**
+
+        - id: member-service
+          uri: lb://MEMBER-SERVICE
+          predicates:
+            - Path=/api/v1/members/**
   
 management:
+  endpoint:
+    health:
+      show-details: always
+  health:
+    circuitbreakers:
+      enabled: true
   endpoints:
     web:
       exposure:
@@ -36,8 +61,32 @@ management:
           - health
           - info
           - gateway
+          - metrics
+          - circuitbreakers
+
+# Cấu hình ngưỡng của Resilience4j
+resilience4j:
+  circuitbreaker:
+    instances:
+      catalogCircuitBreaker:
+        registerHealthIndicator: true # Ép hiển thị số liệu của circuit breaker ở endpoint /actuator/health
+        slidingWindowSize: 5          # Dựa trên 5 request gần nhất
+        failureRateThreshold: 50      # Nếu > 50% request lỗi -> OPEN
+        waitDurationInOpenState: 5s  # Đợi 5s trong trạng thái OPEN trước khi sang HALF_OPEN
+        permittedNumberOfCallsInHalfOpenState: 3 # giới hạn số lần gọi khi ở trạng thái HALF_OPEN
+        automaticTransitionFromOpenToHalfOpenEnabled: true # Bật tự động chuyển mạch sau khi hết thời gian chờ
+  timelimiter:
+    instances:
+      catalogCircuitBreaker:
+        timeoutDuration: 20s           # Đặt dài ra để không chém ngang quá trình Retry
 
 eureka:
+  instance:
+    prefer-ip-address: true
   client:
     service-url:
       defaultZone: http://localhost:8761/eureka/
+
+logging:
+  level:
+    org.springframework.cloud.gateway.filter.factory.RetryGatewayFilterFactory: TRACE

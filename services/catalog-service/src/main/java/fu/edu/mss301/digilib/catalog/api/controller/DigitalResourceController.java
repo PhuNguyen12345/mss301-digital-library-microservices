@@ -8,6 +8,7 @@ import fu.edu.mss301.digilib.catalog.application.command.DigitalResourceCommand;
 import fu.edu.mss301.digilib.catalog.application.usecase.ManageDigitalResourceUseCase;
 import fu.edu.mss301.digilib.catalog.domain.entity.Book;
 import fu.edu.mss301.digilib.catalog.domain.entity.DigitalResource;
+import fu.edu.mss301.digilib.catalog.infrastructure.storage.FileStorageService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -20,7 +21,9 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/catalog")
@@ -28,6 +31,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class DigitalResourceController {
 
     private final ManageDigitalResourceUseCase manageDigitalResourceUseCase;
+    private final FileStorageService fileStorageService;
 
     @GetMapping("/digital-resources")
     public Page<DigitalResourceResponse> getDigitalResources(Pageable pageable) {
@@ -54,6 +58,27 @@ public class DigitalResourceController {
                         null,
                         null,
                         request.getUserId())).getBook());
+    }
+
+    @PostMapping(value = "/books/{bookId}/digital-resources/upload", consumes = "multipart/form-data")
+    public BookResponse uploadDigitalResourcePdf(
+            @PathVariable Long bookId,
+            @RequestPart("file") MultipartFile file,
+            @RequestParam String accessPermission,
+            @RequestParam(required = false) Integer userId) {
+        manageDigitalResourceUseCase.ensureBookExists(bookId);
+        String resourceUrl = fileStorageService.storeDigitalResourcePdf(file, bookId);
+
+        return BookResponse.from(
+                manageDigitalResourceUseCase.add(new DigitalResourceCommand(
+                        bookId,
+                        null,
+                        "PDF",
+                        resourceUrl,
+                        accessPermission,
+                        null,
+                        null,
+                        userId)).getBook());
     }
 
     @PutMapping("/digital-resources/{resourceId}")

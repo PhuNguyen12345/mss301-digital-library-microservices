@@ -5,12 +5,14 @@ spring:
   application:
     name: catalog-service
   flyway:
-    enabled: false
+    enabled: true
+    baseline-on-migrate: true
+    locations: classpath:db/migration
 
   datasource:
-    url: jdbc:postgresql://localhost:5432/catalog_service_dbs
-    username: postgres
-    password: 1234
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:catalog_service_dbs}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:1234}
     driver-class-name: org.postgresql.Driver
 
   jpa:
@@ -27,6 +29,15 @@ management:
         include: "*"
 
 eureka:
+  instance:
+    prefer-ip-address: true
   client:
     service-url:
       defaultZone: http://localhost:8761/eureka/
+
+resilience4j:
+  bulkhead:
+    instances:
+      catalogBulkhead:
+        maxConcurrentCalls: 1
+        maxWaitDuration: 0 # Không chờ đợi, đầy là ném ngoại lệ (fallback) luôn
