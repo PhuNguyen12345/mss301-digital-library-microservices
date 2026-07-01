@@ -6,10 +6,12 @@ import fu.edu.mss301.digilib.member.domain.service.MemberProfileService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.bind.annotation.*;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 @RestController
@@ -18,6 +20,14 @@ import reactor.core.publisher.Mono;
 public class MemberProfileController {
 
     private final MemberProfileService profileService;
+
+    @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'LIBRARIAN')")
+    public Flux<MemberResponse> getAllMember() {
+        return profileService.getAll()
+                .switchIfEmpty(Flux.error(new ResponseStatusException(HttpStatus.NOT_FOUND, "Member list is empty")))
+                .map(MemberResponse::from);
+    }
 
     /**
      * Retrieves or creates a profile dynamically based on the validated identity context.
