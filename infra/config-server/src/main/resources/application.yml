@@ -9,6 +9,8 @@ spring:
       server: 
         git: 
           uri: https://github.com/PhuNguyen12345/mss301-digital-library-microservices.git
+          username: ${GIT_USERNAME}
+          password: ${GIT_TOKEN}
           default-label: ${CONFIG_BRANCH:main}
           search-paths: infra/config-repo
 

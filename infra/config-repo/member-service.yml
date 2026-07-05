@@ -7,9 +7,9 @@ spring:
 
   # Reactive Database Setup via R2DBC
   r2dbc:
-    url: r2dbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:digilib_member}
-    username: ${DB_USERNAME:simpi}
-    password: ${DB_PASSWORD:1231}
+    url: r2dbc:postgresql://${MEMBER_DB_HOST:localhost}:${MEMBER_DB_PORT:5432}/${MEMBER_DB_NAME:digilib_member}
+    username: ${MEMBER_DB_USERNAME:simpi}
+    password: ${MEMBER_DB_PASSWORD:1231}
 
   sql:
     init:
