@@ -5,16 +5,39 @@ spring:
     import: "optional:configserver:http://localhost:8888"
   cloud:
     gateway:
-      mvc:
-        routes:
-          - id: catalog-service
-            uri: lb://catalog-service
-            predicates:
-              - Path=/api/catalog/**
-              - Header=X-Client-Type,web
+      globalcors:
+        add-to-simple-url-handler-mapping: true
+        cors-configurations:
+          '[/**]':
+            allowedOrigins:
+              - http://localhost:5173
+              - http://127.0.0.1:5173
+              - http://localhost:4173
+              - http://127.0.0.1:4173
+            allowedMethods:
+              - GET
+              - POST
+              - PUT
+              - PATCH
+              - DELETE
+              - OPTIONS
+            allowedHeaders:
+              - "*"
+            allowCredentials: true
+      routes:
+        - id: catalog-service
+          uri: lb://catalog-service
+          predicates:
+            - Path=/api/catalog/**
+            - Header=X-Client-Type,web
 
-          - id: loan-service
-            uri: lb://loan-service
-            predicates:
-              - Path=/api/loan/**
-              - Header=X-Client-Type,web
+        - id: catalog-files
+          uri: lb://catalog-service
+          predicates:
+            - Path=/files/**
+
+        - id: loan-service
+          uri: lb://loan-service
+          predicates:
+            - Path=/api/loan/**
+            - Header=X-Client-Type,web
