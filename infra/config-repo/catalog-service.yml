@@ -1,0 +1,43 @@
+server:
+  port: 8082
+
+spring:
+  application:
+    name: catalog-service
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    locations: classpath:db/migration
+
+  datasource:
+    url: jdbc:postgresql://${CATALOG_DB_HOST:localhost}:${CATALOG_DB_PORT:5432}/${CATALOG_DB_NAME:catalog_service_dbs}
+    username: ${CATALOG_DB_USERNAME:postgres}
+    password: ${CATALOG_DB_PASSWORD:1234}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties.hibernate.format_sql: true
+    show-sql: true
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+
+eureka:
+  instance:
+    prefer-ip-address: true
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+
+resilience4j:
+  bulkhead:
+    instances:
+      catalogBulkhead:
+        maxConcurrentCalls: 1
+        maxWaitDuration: 0 # Không chờ đợi, đầy là ném ngoại lệ (fallback) luôn

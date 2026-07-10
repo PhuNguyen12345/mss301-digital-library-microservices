@@ -1,6 +1,3 @@
-server:
-  port: 8081
-
 spring:
   application:
     name: member-service
@@ -38,3 +35,5 @@ keycloak:
   realm: digilib-realm
   client-id: digilib-auth
   client-secret: MtmhLbjfzrt1vmEbzbEZGQ4vZitsRaqj
+  config:
+    import: "optional:configserver:http://localhost:8888"

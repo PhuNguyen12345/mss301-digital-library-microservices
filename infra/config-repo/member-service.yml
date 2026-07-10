@@ -1,0 +1,31 @@
+server:
+  port: 8083
+
+spring:
+  application:
+    name: member-service
+
+  # Reactive Database Setup via R2DBC
+  r2dbc:
+    url: r2dbc:postgresql://${MEMBER_DB_HOST:localhost}:${MEMBER_DB_PORT:5432}/${MEMBER_DB_NAME:digilib_member}
+    username: ${MEMBER_DB_USERNAME:simpi}
+    password: ${MEMBER_DB_PASSWORD:1231}
+
+  sql:
+    init:
+      mode: always
+
+  # Security Decoding Parameters pointing to your Keycloak Setup
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://localhost:8180/realms/digilib-realm
+          jwk-set-uri: http://localhost:8180/realms/digilib-realm/protocol/openid-connect/certs
+
+eureka:
+  instance:
+    prefer-ip-address: true
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
