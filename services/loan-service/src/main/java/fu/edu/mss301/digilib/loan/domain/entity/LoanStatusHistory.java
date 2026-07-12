@@ -2,6 +2,7 @@ package fu.edu.mss301.digilib.loan.domain.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import fu.edu.mss301.digilib.loan.domain.vo.LoanStatus;
 
 import java.time.LocalDateTime;
 
@@ -19,16 +20,13 @@ public class LoanStatusHistory {
     @Column(name = "id")
     private Long id;
 
-    @Column(name = "loan_id", nullable = false)
-    private Long loanId;
-
     @Enumerated(EnumType.STRING)
-    @Column(name = "from_status", nullable = false)
-    private String fromStatus;
+    @Column(name = "from_status")
+    private LoanStatus fromStatus;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "to_status", nullable = false)
-    private String toStatus;
+    private LoanStatus toStatus;
 
     @Column(name = "changed_by", nullable = false)
     private String changedBy;

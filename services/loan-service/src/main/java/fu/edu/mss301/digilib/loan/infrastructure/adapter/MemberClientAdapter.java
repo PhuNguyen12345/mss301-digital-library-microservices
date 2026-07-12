@@ -1,8 +1,10 @@
 package fu.edu.mss301.digilib.loan.infrastructure.adapter;
 
-import lombok.Value;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
+
+import java.math.BigDecimal;
 
 @Component
 public class MemberClientAdapter {
@@ -10,25 +12,36 @@ public class MemberClientAdapter {
 
     public MemberClientAdapter(
             RestClient.Builder restClientBuilder,
-//            @Value("${services.member.base-url}")
-            String memberServiceBaseUrl
+            @Value("${services.member.base-url}") String memberServiceBaseUrl
     ) {
         this.restClient = restClientBuilder
                 .baseUrl(memberServiceBaseUrl)
                 .build();
     }
 
-    public boolean isEligible(Long memberId) {
-        MemberEligibilityResponse response = restClient.get()
-                .uri("/api/v1/members/{memberId}/eligibility", memberId)
+    public MemberPolicy getPolicy(String memberId) {
+        MemberResponse response = restClient.get()
+                .uri("/api/v1/members/{memberId}", memberId)
                 .retrieve()
-                .body(MemberEligibilityResponse.class);
+                .body(MemberResponse.class);
 
-        return response != null && response.eligible();
+        if (response == null) {
+            throw new IllegalStateException("Member service returned an empty response");
+        }
+        boolean hasDebt = response.outstandingBalance() != null
+                && response.outstandingBalance().compareTo(BigDecimal.ZERO) > 0;
+        if (hasDebt) {
+            throw new IllegalStateException("Member has an outstanding balance");
+        }
+        return new MemberPolicy(response.borrowingLimit(), response.loanPeriodDays());
     }
 
-    private record MemberEligibilityResponse(
-            boolean eligible
-    ) {
-    }
+    public record MemberPolicy(int borrowingLimit, int loanPeriodDays) {}
+
+    private record MemberResponse(
+            String id,
+            int borrowingLimit,
+            int loanPeriodDays,
+            BigDecimal outstandingBalance
+    ) {}
 }

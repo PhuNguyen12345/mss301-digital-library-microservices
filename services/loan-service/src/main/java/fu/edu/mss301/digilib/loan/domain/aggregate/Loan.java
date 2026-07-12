@@ -20,15 +20,19 @@ public class Loan {
     private Long loanId;
 
     @Column(name = "member_id", nullable = false)
-    private Long memberId;
+    private String memberId;
 
     @Column(name = "book_id", nullable = false)
     private Long bookId;
 
+    @Column(name = "copy_id")
+    private Long copyId;
+
     @Column(name = "book_type", nullable = false)
     private String bookType;
 
-    @Column(name = "status", nullable = false)
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false, length = 30)
     private LoanStatus status;
 
     @Column(name = "borrowed_at", nullable = false)
@@ -55,6 +59,9 @@ public class Loan {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
+    @Version
+    private Long version;
+
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @JoinColumn(name = "loan_id")
     private final List<LoanStatusHistory> histories = new ArrayList<>();
@@ -63,33 +70,48 @@ public class Loan {
     }
 
     public static Loan create(
-            Long memberId,
+            String memberId,
             Long bookId,
+            Long copyId,
             String bookType,
-            LocalDateTime dueDate) {
+            LocalDateTime dueDate,
+            String idempotencyKey) {
 
-        if (memberId == null)
+        if (memberId == null || memberId.isBlank())
             throw new IllegalArgumentException("member required");
 
         if (bookId == null)
             throw new IllegalArgumentException("book required");
 
+        if (dueDate == null || !dueDate.isAfter(LocalDateTime.now()))
+            throw new IllegalArgumentException("due date must be in the future");
+
+        if (idempotencyKey == null || idempotencyKey.isBlank())
+            throw new IllegalArgumentException("idempotency key required");
+
         Loan loan = new Loan();
 
         loan.memberId = memberId;
         loan.bookId = bookId;
-        loan.bookType = bookType;
+        loan.copyId = copyId;
+        loan.bookType = bookType == null || bookType.isBlank() ? "PHYSICAL" : bookType.toUpperCase();
         loan.status = LoanStatus.BORROWED;
         loan.borrowedAt = LocalDateTime.now();
         loan.dueDate = dueDate;
         loan.renewalCount = 0;
         loan.maxRenewals = 3;
-        loan.createdAt = LocalDateTime.now();
+        loan.idempotencyKey = idempotencyKey;
+        loan.createdAt = loan.borrowedAt;
+        loan.updatedAt = loan.borrowedAt;
+        loan.addHistory(null, LoanStatus.BORROWED, "SYSTEM", "Loan created");
 
         return loan;
     }
 
-    public void renew() {
+    public void renew(String changedBy) {
+
+        if (status != LoanStatus.BORROWED)
+            throw new IllegalStateException("Only an active loan can be renewed");
 
         if (renewalCount >= maxRenewals)
             throw new IllegalStateException(
@@ -97,16 +119,21 @@ public class Loan {
 
         renewalCount++;
         dueDate = dueDate.plusDays(14);
+        updatedAt = LocalDateTime.now();
+        addHistory(status, status, changedBy, "Loan renewed");
     }
 
-    public void returnBook() {
+    public void returnBook(String changedBy) {
 
         if (status == LoanStatus.RETURNED)
             throw new IllegalStateException(
                     "Book already returned");
 
+        LoanStatus previousStatus = status;
         status = LoanStatus.RETURNED;
         returnedAt = LocalDateTime.now();
+        updatedAt = returnedAt;
+        addHistory(previousStatus, status, changedBy, "Book returned");
     }
 
     public void markOverdue() {
@@ -114,7 +141,20 @@ public class Loan {
         if (status == LoanStatus.BORROWED &&
                 LocalDateTime.now().isAfter(dueDate)) {
 
+            LoanStatus previousStatus = status;
             status = LoanStatus.OVERDUE;
+            updatedAt = LocalDateTime.now();
+            addHistory(previousStatus, status, "SYSTEM", "Due date exceeded");
         }
+    }
+
+    private void addHistory(LoanStatus from, LoanStatus to, String changedBy, String reason) {
+        histories.add(LoanStatusHistory.builder()
+                .fromStatus(from)
+                .toStatus(to)
+                .changedBy(changedBy == null || changedBy.isBlank() ? "SYSTEM" : changedBy)
+                .reason(reason)
+                .changedAt(LocalDateTime.now())
+                .build());
     }
 }

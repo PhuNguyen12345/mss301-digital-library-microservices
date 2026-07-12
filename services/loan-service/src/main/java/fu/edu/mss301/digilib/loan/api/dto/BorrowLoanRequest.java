@@ -1,8 +1,11 @@
 package fu.edu.mss301.digilib.loan.api.dto;
 
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+
 public record BorrowLoanRequest(
-        Long memberId,
-         Long bookId,
-         String bookType,
-         String idempotencyKey
+        @NotBlank String memberId,
+        @NotNull Long bookId,
+        @NotBlank String bookType,
+        @NotBlank String idempotencyKey
 ) {}

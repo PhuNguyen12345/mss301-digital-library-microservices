@@ -30,7 +30,6 @@ public class SagaLog {
     @Column(name = "current_step", nullable = false)
     private String currentStep;
 
-    @Enumerated(EnumType.STRING)
     @Column(name = "overall_status", nullable = false)
     private String overallStatus;
 

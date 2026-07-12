@@ -7,22 +7,28 @@ import java.time.LocalDateTime;
 
 public record LoanResponse(
         Long loanId,
-        Long memberId,
+        String memberId,
         Long bookId,
+        Long copyId,
         String bookType,
         LoanStatus status,
+        LocalDateTime borrowedAt,
         LocalDateTime dueDate,
-        LocalDateTime returnedAt
+        LocalDateTime returnedAt,
+        Integer renewalCount
 ) {
     public static LoanResponse from(Loan loan) {
         return new LoanResponse(
                 loan.getLoanId(),
                 loan.getMemberId(),
                 loan.getBookId(),
+                loan.getCopyId(),
                 loan.getBookType(),
                 loan.getStatus(),
+                loan.getBorrowedAt(),
                 loan.getDueDate(),
-                loan.getReturnedAt()
+                loan.getReturnedAt(),
+                loan.getRenewalCount()
         );
     }
 }
