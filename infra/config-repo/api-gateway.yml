@@ -40,7 +40,7 @@ spring:
         - id: loan-service
           uri: lb://LOAN-SERVICE
           predicates:
-            - Path=/api/loan/**
+            - Path=/api/v1/loans/**,/api/v1/rent-books
 
         - id: member-service
           uri: lb://MEMBER-SERVICE

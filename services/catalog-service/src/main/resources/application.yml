@@ -1,3 +1,6 @@
+server:
+  port: ${CATALOG_SERVICE_PORT:8082}
+
 spring:
   application:
     name: catalog-service
@@ -6,9 +9,9 @@ spring:
     import: "optional:configserver:http://localhost:8888"
 
   datasource:
-    url: jdbc:postgresql://localhost:5432/catalog_service_dbs
-    username: postgres
-    password: 1234
+    url: ${CATALOG_DB_URL:jdbc:postgresql://localhost:5432/catalog_service_dbs}
+    username: ${CATALOG_DB_USERNAME:postgres}
+    password: ${CATALOG_DB_PASSWORD:123}
     driver-class-name: org.postgresql.Driver
 
   flyway:
@@ -31,3 +34,9 @@ spring:
 
 catalog:
   upload-dir: uploads/catalog
+
+eureka:
+  client:
+    enabled: ${EUREKA_ENABLED:true}
+    service-url:
+      defaultZone: ${EUREKA_URL:http://localhost:8761/eureka/}
