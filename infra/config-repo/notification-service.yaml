@@ -6,16 +6,17 @@ spring:
     name: notification-service
 
   datasource:
-    url: jdbc:mysql://${NOTIFICATION_DB_HOST:localhost}:${NOTIFICATION_DB_PORT:3306}/${NOTIFICATION_DB_NAME:notification_service_db}
-    username: ${NOTIFICATION_DB_USERNAME:root}
+    url: jdbc:postgresql://${NOTIFICATION_DB_HOST:localhost}:${NOTIFICATION_DB_PORT:5432}/${NOTIFICATION_DB_NAME:notification_service_db}
+    username: ${NOTIFICATION_DB_USERNAME:postgres}
     password: ${NOTIFICATION_DB_PASSWORD:}
-    driver-class-name: com.mysql.cj.jdbc.Driver
+    driver-class-name: org.postgresql.Driver
 
   jpa:
     hibernate:
       ddl-auto: update
     properties:
       hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: true
     show-sql: true
 
