@@ -1,24 +1,35 @@
 package fu.edu.mss301.digilib.member.config;
 
+import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.validation.annotation.Validated;
 
 @Configuration
 @ConfigurationProperties(prefix = "keycloak")
+@Validated
 @Data
 public class KeycloakProperties {
 
-    /** Base URL of the Keycloak server, e.g. https://keycloak.huynq.space */
+    /** Base URL of the Keycloak server, supplied per environment. */
+    @NotBlank
     private String baseUrl;
 
     /** The Keycloak realm this service belongs to */
+    @NotBlank
     private String realm;
 
+    /** Canonical OIDC issuer used by Spring Security for token validation. */
+    @NotBlank
+    private String issuerUri;
+
     /** The client ID of this service's confidential Keycloak client */
+    @NotBlank
     private String clientId;
 
-    /** The client secret for service-account token exchange */
+    /** Rotated client secret injected at runtime; never stored in source control. */
+    @NotBlank
     private String clientSecret;
 
     // -------------------------------------------------------------------------

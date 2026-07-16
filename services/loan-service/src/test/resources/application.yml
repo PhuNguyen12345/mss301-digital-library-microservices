@@ -18,7 +18,7 @@ eureka:
     enabled: false
 
 services:
-  internal-api-key: local-dev-internal-key
+  internal-api-key: test-only-internal-api-key
   catalog:
     base-url: http://localhost:8082
   member:

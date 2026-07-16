@@ -1,5 +1,6 @@
 server:
-  port: 8083
+  address: ${INTERNAL_SERVICE_BIND_ADDRESS:127.0.0.1}
+  port: ${MEMBER_SERVICE_PORT:8083}
 
 spring:
   application:
@@ -15,17 +16,28 @@ spring:
     init:
       mode: always
 
-  # Security Decoding Parameters pointing to your Keycloak Setup
+  # KEYCLOAK_ISSUER_URI is the single source of truth for JWT validation.
+  # Spring Security discovers the JWK set from the issuer metadata.
   security:
     oauth2:
       resourceserver:
         jwt:
-          issuer-uri: http://localhost:8180/realms/digilib-realm
-          jwk-set-uri: http://localhost:8180/realms/digilib-realm/protocol/openid-connect/certs
+          issuer-uri: ${keycloak.issuer-uri}
+
+keycloak:
+  base-url: ${KEYCLOAK_BASE_URL:http://localhost:8180}
+  realm: ${KEYCLOAK_REALM:digilib-realm}
+  issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8180/realms/digilib-realm}
+  client-id: ${KEYCLOAK_CLIENT_ID:digilib-auth}
+  client-secret: ${KEYCLOAK_CLIENT_SECRET}
+
+services:
+  internal-api-key: ${INTERNAL_API_KEY}
 
 eureka:
   instance:
-    prefer-ip-address: true
+    hostname: ${INTERNAL_SERVICE_HOST:localhost}
+    prefer-ip-address: false
   client:
     service-url:
       defaultZone: http://localhost:8761/eureka/

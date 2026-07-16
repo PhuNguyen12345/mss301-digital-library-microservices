@@ -35,6 +35,9 @@ public class SecurityConfig {
                         .pathMatchers(HttpMethod.POST, "/api/v1/auth/register").permitAll()
                         .pathMatchers(HttpMethod.POST, "/api/v1/auth/login").permitAll()
                         .pathMatchers(HttpMethod.POST, "/api/v1/auth/oauth2/exchange").permitAll()
+                        // A dedicated WebFilter authenticates this service-to-service path
+                        // with X-Internal-Api-Key before the Spring Security chain runs.
+                        .pathMatchers(HttpMethod.GET, "/api/v1/members/internal/**").permitAll()
                         // Logout requires a valid identity token
                         .pathMatchers(HttpMethod.POST, "/api/v1/auth/logout").authenticated()
                         // Everything else requires an authorized identity token

@@ -22,6 +22,8 @@ buildNumber.properties
 # Bỏ qua các file môi trường và log
 *.log
 .env
+.env.*
+!.env.example
 
 # bo qua file ca nhan
 /markdown-notes

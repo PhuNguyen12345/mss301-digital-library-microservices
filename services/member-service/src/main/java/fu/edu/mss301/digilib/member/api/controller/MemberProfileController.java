@@ -8,16 +8,12 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
 
 @RestController
 @RequiredArgsConstructor
@@ -45,9 +41,6 @@ public class MemberProfileController {
                 .switchIfEmpty(Mono.error(new ResponseStatusException(HttpStatus.NOT_FOUND, "Member profile not found")))
                 .map(MemberResponse::from);
     }
-
-    @Value("${services.internal-api-key}")
-    private String internalApiKey;
 
     /**
      * Retrieves or creates a profile dynamically based on the validated identity context.
@@ -88,24 +81,14 @@ public class MemberProfileController {
     }
 
     /**
-     * Service-to-service endpoint. It intentionally does not accept end-user JWTs;
-     * callers must provide the shared internal API key.
+     * Service-to-service endpoint. InternalApiKeyWebFilter authenticates callers
+     * before this controller is invoked.
      */
     @GetMapping("/internal/{memberId}")
     public Mono<MemberResponse> getProfileForInternalService(
-            @PathVariable("memberId") String memberId,
-            @RequestHeader(name = "X-Internal-Api-Key") String suppliedApiKey) {
-        if (!constantTimeEquals(internalApiKey, suppliedApiKey)) {
-            return Mono.error(new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid internal API key"));
-        }
+            @PathVariable("memberId") String memberId) {
         return profileService.getProfileById(memberId)
                 .switchIfEmpty(Mono.error(new ResponseStatusException(HttpStatus.NOT_FOUND, "Member profile not found")))
                 .map(MemberResponse::from);
-    }
-
-    private boolean constantTimeEquals(String expected, String supplied) {
-        return expected != null && supplied != null && MessageDigest.isEqual(
-                expected.getBytes(StandardCharsets.UTF_8),
-                supplied.getBytes(StandardCharsets.UTF_8));
     }
 }
