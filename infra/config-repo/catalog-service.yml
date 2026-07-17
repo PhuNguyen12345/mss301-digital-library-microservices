@@ -1,6 +1,6 @@
 server:
   address: ${INTERNAL_SERVICE_BIND_ADDRESS:127.0.0.1}
-  port: 8082
+  port: 8081
 
 spring:
   application:

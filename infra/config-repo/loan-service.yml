@@ -1,6 +1,6 @@
 server:
   address: ${INTERNAL_SERVICE_BIND_ADDRESS:127.0.0.1}
-  port: ${LOAN_SERVICE_PORT:8084}
+  port: ${LOAN_SERVICE_PORT:8083}
 
 spring:
   application:
