@@ -33,6 +33,7 @@ public class GatewaySecurityConfig {
                 .authorizeExchange(exchanges -> exchanges
                         .pathMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .pathMatchers("/actuator/health", "/actuator/info").permitAll()
+                        .pathMatchers("/actuator/**").hasRole("ADMIN")
                         .pathMatchers(HttpMethod.POST,
                                 "/api/v1/auth/register",
                                 "/api/v1/auth/login",

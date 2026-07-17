@@ -8,6 +8,7 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.web.cors.reactive.CorsWebFilter;
 
@@ -62,11 +63,36 @@ class GatewaySecurityIntegrationTests {
 
     @Test
     void allowsProtectedRouteWithJwt() {
-        webTestClient.mutateWith(mockJwt().jwt(jwt -> jwt
-                        .subject("member-1")
-                        .claim("realm_access", MapClaims.memberRole())))
+        webTestClient.mutateWith(mockJwt()
+                        .jwt(jwt -> jwt.subject("member-1"))
+                        .authorities(new SimpleGrantedAuthority("ROLE_MEMBER")))
                 .get()
                 .uri("/api/v1/members/me")
+                .exchange()
+                .expectStatus().value(status ->
+                        assertThat(status).isNotIn(
+                                HttpStatus.UNAUTHORIZED.value(),
+                                HttpStatus.FORBIDDEN.value()));
+    }
+
+    @Test
+    void rejectsOperationalActuatorEndpointsForNonAdminUsers() {
+        webTestClient.mutateWith(mockJwt()
+                        .jwt(jwt -> jwt.subject("member-1"))
+                        .authorities(new SimpleGrantedAuthority("ROLE_MEMBER")))
+                .get()
+                .uri("/actuator/metrics")
+                .exchange()
+                .expectStatus().isForbidden();
+    }
+
+    @Test
+    void allowsOperationalActuatorEndpointsForAdmins() {
+        webTestClient.mutateWith(mockJwt()
+                        .jwt(jwt -> jwt.subject("admin-1"))
+                        .authorities(new SimpleGrantedAuthority("ROLE_ADMIN")))
+                .get()
+                .uri("/actuator/metrics")
                 .exchange()
                 .expectStatus().value(status ->
                         assertThat(status).isNotIn(
@@ -97,12 +123,4 @@ class GatewaySecurityIntegrationTests {
                 .expectStatus().isForbidden();
     }
 
-    private static final class MapClaims {
-        private MapClaims() {
-        }
-
-        static java.util.Map<String, Object> memberRole() {
-            return java.util.Map.of("roles", java.util.List.of("member"));
-        }
-    }
 }
