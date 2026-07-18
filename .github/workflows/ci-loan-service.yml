@@ -2,6 +2,8 @@ name: CI - Loan Service
 
 on:
   push:
+    branches:
+      - main
     paths:
       - services/loan-service/**
       - shared/common-web/**
