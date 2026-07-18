@@ -3,10 +3,6 @@ name: Reusable service CD
 on:
   workflow_call:
     inputs:
-      module:
-        description: Maven module path to build (build-arg MODULE for the root Dockerfile)
-        required: true
-        type: string
       service_name:
         description: Service name — used as container name, image name, and gcloud secret name
         required: true
@@ -29,29 +25,10 @@ jobs:
     environment:
       name: production
     steps:
-      - name: Checkout source code
-        uses: actions/checkout@v6
-
-      - name: Get commit hash
-        run: echo "SHORT_SHA=$(echo $GITHUB_SHA | cut -c1-7)" >> $GITHUB_ENV
-
       - name: Load secrets
         run: |
           touch secret-file
           gcloud secrets versions access latest --secret="${{ inputs.service_name }}" >> secret-file
-
-      - name: Log in to Docker Hub
-        run: |
-          echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
-
-      - name: Build Docker image
-        run: |
-          echo "Building image: ${{ secrets.DOCKER_USERNAME }}/${{ inputs.service_name }}:${SHORT_SHA}"
-          docker build \
-            --build-arg "MODULE=${{ inputs.module }}" \
-            -t "${{ secrets.DOCKER_USERNAME }}/${{ inputs.service_name }}:${SHORT_SHA}" \
-            -t "${{ secrets.DOCKER_USERNAME }}/${{ inputs.service_name }}:latest" \
-            .
 
       - name: Ensure shared network exists
         run: docker network create digilib-network 2>/dev/null || true
@@ -72,9 +49,4 @@ jobs:
             --network-alias ${{ inputs.service_name }} \
             --restart unless-stopped \
             -p ${{ inputs.host_port }}:${{ inputs.container_port }} \
-            "${{ secrets.DOCKER_USERNAME }}/${{ inputs.service_name }}:${SHORT_SHA}"
-
-      - name: Push Docker image
-        run: |
-          docker push "${{ secrets.DOCKER_USERNAME }}/${{ inputs.service_name }}:${SHORT_SHA}"
-          docker push "${{ secrets.DOCKER_USERNAME }}/${{ inputs.service_name }}:latest"
+            "${{ secrets.DOCKER_USERNAME }}/${{ inputs.service_name }}:${{ github.sha }}"
