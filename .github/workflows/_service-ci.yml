@@ -19,6 +19,8 @@ jobs:
   test-and-build:
     runs-on: self-hosted
     timeout-minutes: 30
+    environment:
+      name: production
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -30,6 +32,13 @@ jobs:
           java-version: "21"
           cache: maven
 
+      - name: Ensure Maven is installed
+        run: |
+          command -v mvn || (sudo apt-get update && sudo apt-get install -y maven)
+
+      - name: Compute short commit SHA
+        run: echo "SHORT_SHA=${GITHUB_SHA:0:7}" >> "$GITHUB_ENV"
+
       - name: Run module tests
         run: >-
           mvn --batch-mode --no-transfer-progress
@@ -39,7 +48,7 @@ jobs:
         run: >-
           docker build
           --build-arg "MODULE=${{ inputs.module }}"
-          --tag "${{ secrets.DOCKER_USERNAME }}/${{ inputs.image_name }}:${{ github.sha }}"
+          --tag "${{ secrets.DOCKER_USERNAME }}/${{ inputs.image_name }}:${{ env.SHORT_SHA }}"
           --tag "${{ secrets.DOCKER_USERNAME }}/${{ inputs.image_name }}:latest"
           .
 
@@ -51,5 +60,5 @@ jobs:
       - name: Push service image
         if: github.event_name == 'push'
         run: |
-          docker push "${{ secrets.DOCKER_USERNAME }}/${{ inputs.image_name }}:${{ github.sha }}"
+          docker push "${{ secrets.DOCKER_USERNAME }}/${{ inputs.image_name }}:${{ env.SHORT_SHA }}"
           docker push "${{ secrets.DOCKER_USERNAME }}/${{ inputs.image_name }}:latest"
