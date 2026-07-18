@@ -1,0 +1,20 @@
+name: CD - Member Service
+
+on:
+  push:
+    tags:
+      - "member-service/*"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  member-service:
+    uses: ./.github/workflows/_service-cd.yml
+    with:
+      module: services/member-service
+      service_name: member-service
+      host_port: "8082"
+      container_port: "8082"
+    secrets: inherit

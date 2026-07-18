@@ -1,0 +1,20 @@
+name: CD - API Gateway
+
+on:
+  push:
+    tags:
+      - "api-gateway/*"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  api-gateway:
+    uses: ./.github/workflows/_service-cd.yml
+    with:
+      module: infra/api-gateway
+      service_name: api-gateway
+      host_port: "80"
+      container_port: "8080"
+    secrets: inherit
