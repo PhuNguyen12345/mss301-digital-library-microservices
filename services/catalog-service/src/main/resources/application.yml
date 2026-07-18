@@ -7,7 +7,9 @@ spring:
     name: catalog-service
 
   config:
-    import: "${CONFIG_SERVER_IMPORT:optional:configserver:http://localhost:8888}"
+    import:
+      - "optional:file:.env[.properties]"
+      - "${CONFIG_SERVER_IMPORT:optional:configserver:http://localhost:8888}"
 
   datasource:
     url: ${CATALOG_DB_URL:jdbc:postgresql://localhost:5432/catalog_service_dbs}

@@ -24,9 +24,9 @@ services:
 
 eureka:
   instance:
-    hostname: ${INTERNAL_SERVICE_HOST:localhost}
+    hostname: ${INTERNAL_SERVICE_HOST:loan-service}
     prefer-ip-address: false
   client:
     enabled: ${EUREKA_ENABLED:true}
     service-url:
-      defaultZone: ${EUREKA_URL:http://localhost:8761/eureka/}
+      defaultZone: ${EUREKA_URL:http://eureka-server:8761/eureka/}
