@@ -11,7 +11,8 @@ on:
       - Dockerfile
       - .dockerignore
       - .github/workflows/_service-ci.yml
-      - .github/workflows/ci-catalog-service.yml
+      - .github/workflows/_service-cd.yml
+      - .github/workflows/cicd-catalog-service.yml
   pull_request:
     paths:
       - services/catalog-service/**
@@ -20,15 +21,26 @@ on:
       - Dockerfile
       - .dockerignore
       - .github/workflows/_service-ci.yml
-      - .github/workflows/ci-catalog-service.yml
+      - .github/workflows/cicd-catalog-service.yml
   workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  catalog-service:
+  catalog-service-ci:
     uses: ./.github/workflows/_service-ci.yml
     with:
       module: services/catalog-service
       image_name: catalog-service
+    secrets: inherit
+
+  catalog-service-cd:
+    needs: catalog-service-ci
+    if: github.event_name == 'push'
+    uses: ./.github/workflows/_service-cd.yml
+    with:
+      service_name: catalog-service
+      host_port: "8081"
+      container_port: "8081"
+    secrets: inherit
