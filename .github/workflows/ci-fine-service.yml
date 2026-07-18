@@ -2,6 +2,8 @@ name: CI - Fine Service
 
 on:
   push:
+    branches:
+      - main
     paths:
       - services/fine-service/**
       - pom.xml
