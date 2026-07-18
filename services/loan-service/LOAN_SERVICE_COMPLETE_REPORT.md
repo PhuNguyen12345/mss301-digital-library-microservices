@@ -123,7 +123,7 @@ Loan Service gọi endpoint nội bộ:
 
 ```text
 GET http://localhost:8083/api/v1/members/internal/{memberId}
-X-Internal-Api-Key: local-dev-internal-key
+X-Internal-Api-Key: <runtime-injected-secret>
 ```
 
 Dữ liệu được sử dụng gồm `borrowingLimit`, `loanPeriodDays` và `outstandingBalance`.
@@ -173,7 +173,7 @@ Các biến môi trường quan trọng:
 | `LOAN_DB_PASSWORD` | `123` |
 | `CATALOG_SERVICE_URL` | `http://localhost:8082` |
 | `MEMBER_SERVICE_URL` | `http://localhost:8083` |
-| `INTERNAL_API_KEY` | `local-dev-internal-key` |
+| `INTERNAL_API_KEY` | Bắt buộc, không có giá trị mặc định |
 | `EUREKA_ENABLED` | `true` |
 | `EUREKA_URL` | `http://localhost:8761/eureka/` |
 

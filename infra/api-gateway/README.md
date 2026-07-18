@@ -7,15 +7,26 @@
 
 ## 🚀 Chức năng chính (Theo tiến độ)
 * **Tuần 2 - Cơ sở hạ tầng:** Tự động định tuyến (Dynamic Routing) đến các service nội bộ thông qua Service Discovery.
-* **Tuần 5 - Xử lý lỗi:** Global Exception Handling cho toàn bộ luồng request đầu vào.
-* **Tuần 7 - Bảo mật:** Là chốt chặn đầu tiên kiểm tra và xác thực **JWT Token**, áp dụng Role-Based Access Control (RBAC) trước khi cho phép request đi sâu vào hệ thống.
-* **Xử lý chung:** Cấu hình CORS (Cross-Origin Resource Sharing) để Frontend gọi API không bị lỗi.
+* **Bảo mật:** Xác thực JWT theo Keycloak issuer trước khi request được forward.
+* **CORS:** Chỉ cho phép các frontend origin được cấu hình.
+* **Resilience:** Timeout, circuit breaker riêng cho từng downstream service, retry có backoff chỉ cho `GET`, và fallback JSON với HTTP `503/504`.
 
 ## 🛠 Tech Stack
 * **Ngôn ngữ:** Java 21
 * **Framework:** Spring Boot 3.x
 * **Cloud Components:** Spring Cloud Gateway, Netflix Eureka Client
 * **Quản lý thư viện:** Maven
+
+## Resilience policy
+
+* Timeout kết nối mặc định: `1s`; timeout phản hồi mặc định: `5s`.
+* Auth có response timeout `15s`; download file có response timeout `30s`.
+* Catalog, Loan, Member và Fine dùng circuit breaker độc lập.
+* Mỗi downstream có semaphore bulkhead riêng; request bị từ chối ngay khi đạt giới hạn đồng thời.
+* Chỉ `GET` được retry, tối đa 2 lần. Request ghi dữ liệu và auth không retry để tránh tạo thao tác trùng.
+* Fallback không giả lập dữ liệu thành công; client nhận `UPSTREAM_UNAVAILABLE` (`503`) hoặc `UPSTREAM_TIMEOUT` (`504`).
+
+Các ngưỡng timeout có thể override bằng các biến `GATEWAY_*_TIMEOUT` trong `.env` hoặc secret/config của môi trường triển khai.
 
 ## ⚙️ Cài đặt & Khởi chạy
 

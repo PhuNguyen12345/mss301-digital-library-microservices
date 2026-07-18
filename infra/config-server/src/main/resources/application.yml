@@ -1,10 +1,13 @@
-server: 
-  port: 8888 
+server:
+  address: ${INFRA_BIND_ADDRESS:127.0.0.1}
+  port: 8888
 
-spring: 
-  application: 
-    name: config-server 
-  cloud: 
+spring:
+  config:
+    import: optional:file:.env[.properties]
+  application:
+    name: config-server
+  cloud:
     config: 
       server: 
         git: 

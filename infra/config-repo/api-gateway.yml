@@ -2,88 +2,228 @@ server:
   port: 8080
 
 spring:
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${keycloak.issuer-uri}
   cloud:
+    circuitbreaker:
+      bulkhead:
+        resilience4j:
+          enabled: true
+      resilience4j:
+        # Reactive Gateway traffic must use a semaphore bulkhead; a fixed
+        # thread pool would break the non-blocking execution model.
+        enableSemaphoreDefaultBulkhead: true
     gateway:
-      routes:
-        # Route DÀNH RIÊNG để test Bulkhead (Không cắm Timeout 2s, Không dùng Retry)
-        - id: catalog-bulkhead-demo
-          uri: lb://CATALOG-SERVICE
-          predicates:
-            - Path=/api/catalog/demo/bulkhead
+      server:
+        webflux:
+          httpclient:
+            # Global network guardrails. Per-route metadata below overrides the
+            # response timeout for operations that legitimately need more time.
+            connect-timeout: ${GATEWAY_CONNECT_TIMEOUT_MS:1000}
+            response-timeout: ${GATEWAY_RESPONSE_TIMEOUT:5s}
+          routes:
+            - id: catalog-service
+              uri: lb://CATALOG-SERVICE
+              predicates:
+                - Path=/api/catalog/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: catalogCircuitBreaker
+                    fallbackUri: forward:/fallback/catalog
+                    statusCodes: INTERNAL_SERVER_ERROR,BAD_GATEWAY,SERVICE_UNAVAILABLE,GATEWAY_TIMEOUT
+                # Retry is deliberately limited to idempotent reads. Never add
+                # POST/PUT/PATCH/DELETE here without an idempotency-key design.
+                - name: Retry
+                  args:
+                    retries: 2
+                    statuses: BAD_GATEWAY,SERVICE_UNAVAILABLE,GATEWAY_TIMEOUT
+                    methods: GET
+                    exceptions: java.io.IOException,java.util.concurrent.TimeoutException,io.netty.handler.timeout.ReadTimeoutException
+                    backoff:
+                      firstBackoff: 100ms
+                      maxBackoff: 500ms
+                      factor: 2
+                      basedOnPreviousValue: false
 
-        - id: catalog-service
-          uri: lb://CATALOG-SERVICE
-          metadata:
-            response-timeout: 2000 # Timeout thực tế 2s áp dụng ở cấp HTTP Client
-            connect-timeout: 1000
-          predicates:
-            - Path=/api/catalog/**
-          filters:
-            # 1. Cấu hình Circuit Breaker & Fallback (Đặt lên trên để bọc lấy Retry)
-            - name: CircuitBreaker
-              args:
-                name: catalogCircuitBreaker
-                fallbackUri: forward:/fallback/catalog
-            # 2. Cấu hình Retry (Đặt dưới để chạy sát với luồng gọi mạng)
-            - name: Retry
-              args:
-                retries: 3
-                statuses: GATEWAY_TIMEOUT
-                methods: GET
-                exceptions: org.springframework.cloud.gateway.support.TimeoutException, io.netty.handler.timeout.ReadTimeoutException, java.util.concurrent.TimeoutException
-                backoff:
-                  firstBackoff: 500ms
-                  maxBackoff: 2000ms
-                  factor: 2
-                  basedOnPreviousValue: false
+            - id: catalog-files
+              uri: lb://CATALOG-SERVICE
+              metadata:
+                response-timeout: ${GATEWAY_FILE_RESPONSE_TIMEOUT_MS:30000}
+              predicates:
+                - Path=/files/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: catalogFilesCircuitBreaker
+                    fallbackUri: forward:/fallback/catalog-files
+                    statusCodes: INTERNAL_SERVER_ERROR,BAD_GATEWAY,SERVICE_UNAVAILABLE,GATEWAY_TIMEOUT
 
-        - id: loan-service
-          uri: lb://LOAN-SERVICE
-          predicates:
-            - Path=/api/v1/loans/**,/api/v1/rent-books
+            - id: loan-service
+              uri: lb://LOAN-SERVICE
+              predicates:
+                - Path=/api/v1/loans/**,/api/v1/rent-books
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: loanCircuitBreaker
+                    fallbackUri: forward:/fallback/loan
+                    statusCodes: INTERNAL_SERVER_ERROR,BAD_GATEWAY,SERVICE_UNAVAILABLE,GATEWAY_TIMEOUT
+                - name: Retry
+                  args:
+                    retries: 2
+                    statuses: BAD_GATEWAY,SERVICE_UNAVAILABLE,GATEWAY_TIMEOUT
+                    methods: GET
+                    exceptions: java.io.IOException,java.util.concurrent.TimeoutException,io.netty.handler.timeout.ReadTimeoutException
+                    backoff:
+                      firstBackoff: 100ms
+                      maxBackoff: 500ms
+                      factor: 2
+                      basedOnPreviousValue: false
 
-        - id: member-service
-          uri: lb://MEMBER-SERVICE
-          predicates:
-            - Path=/api/v1/members/**
+            - id: member-auth
+              uri: lb://MEMBER-SERVICE
+              metadata:
+                response-timeout: ${GATEWAY_AUTH_RESPONSE_TIMEOUT_MS:15000}
+              predicates:
+                - Path=/api/v1/auth/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: memberAuthCircuitBreaker
+                    fallbackUri: forward:/fallback/member-auth
+                    statusCodes: INTERNAL_SERVER_ERROR,BAD_GATEWAY,SERVICE_UNAVAILABLE,GATEWAY_TIMEOUT
 
-        - id: fine-service
-          uri: lb://FINE-SERVICE
-          predicates:
-            - Path=/api/fines/**
+            - id: member-service
+              uri: lb://MEMBER-SERVICE
+              predicates:
+                - Path=/api/v1/members/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: memberCircuitBreaker
+                    fallbackUri: forward:/fallback/member
+                    statusCodes: INTERNAL_SERVER_ERROR,BAD_GATEWAY,SERVICE_UNAVAILABLE,GATEWAY_TIMEOUT
+                - name: Retry
+                  args:
+                    retries: 2
+                    statuses: BAD_GATEWAY,SERVICE_UNAVAILABLE,GATEWAY_TIMEOUT
+                    methods: GET
+                    exceptions: java.io.IOException,java.util.concurrent.TimeoutException,io.netty.handler.timeout.ReadTimeoutException
+                    backoff:
+                      firstBackoff: 100ms
+                      maxBackoff: 500ms
+                      factor: 2
+                      basedOnPreviousValue: false
+
+            - id: fine-service
+              uri: lb://FINE-SERVICE
+              predicates:
+                - Path=/api/fines/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: fineCircuitBreaker
+                    fallbackUri: forward:/fallback/fine
+                    statusCodes: INTERNAL_SERVER_ERROR,BAD_GATEWAY,SERVICE_UNAVAILABLE,GATEWAY_TIMEOUT
+                - name: Retry
+                  args:
+                    retries: 2
+                    statuses: BAD_GATEWAY,SERVICE_UNAVAILABLE,GATEWAY_TIMEOUT
+                    methods: GET
+                    exceptions: java.io.IOException,java.util.concurrent.TimeoutException,io.netty.handler.timeout.ReadTimeoutException
+                    backoff:
+                      firstBackoff: 100ms
+                      maxBackoff: 500ms
+                      factor: 2
+                      basedOnPreviousValue: false
   
 management:
   endpoint:
     health:
-      show-details: always
+      show-details: when-authorized
   health:
     circuitbreakers:
       enabled: true
   endpoints:
     web:
       exposure:
-        includes:
+        include:
           - health
           - info
           - gateway
           - metrics
           - circuitbreakers
 
-# Cấu hình ngưỡng của Resilience4j
+# One breaker per downstream prevents a Catalog outage from opening the circuit
+# for Member, Loan, or Fine. The shared defaults keep their behavior consistent.
 resilience4j:
+  bulkhead:
+    configs:
+      default:
+        maxConcurrentCalls: ${GATEWAY_BULKHEAD_MAX_CONCURRENT_CALLS:50}
+        maxWaitDuration: 0
+    instances:
+      catalogCircuitBreaker:
+        baseConfig: default
+      catalogFilesCircuitBreaker:
+        maxConcurrentCalls: ${GATEWAY_FILE_BULKHEAD_MAX_CONCURRENT_CALLS:20}
+        maxWaitDuration: 0
+      loanCircuitBreaker:
+        baseConfig: default
+      memberAuthCircuitBreaker:
+        maxConcurrentCalls: ${GATEWAY_AUTH_BULKHEAD_MAX_CONCURRENT_CALLS:20}
+        maxWaitDuration: 0
+      memberCircuitBreaker:
+        baseConfig: default
+      fineCircuitBreaker:
+        baseConfig: default
   circuitbreaker:
+    configs:
+      default:
+        registerHealthIndicator: true
+        slidingWindowType: COUNT_BASED
+        slidingWindowSize: 20
+        minimumNumberOfCalls: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 30s
+        permittedNumberOfCallsInHalfOpenState: 3
     instances:
       catalogCircuitBreaker:
-        registerHealthIndicator: true # Ép hiển thị số liệu của circuit breaker ở endpoint /actuator/health
-        slidingWindowSize: 5          # Dựa trên 5 request gần nhất
-        failureRateThreshold: 50      # Nếu > 50% request lỗi -> OPEN
-        waitDurationInOpenState: 5s  # Đợi 5s trong trạng thái OPEN trước khi sang HALF_OPEN
-        permittedNumberOfCallsInHalfOpenState: 3 # giới hạn số lần gọi khi ở trạng thái HALF_OPEN
-        automaticTransitionFromOpenToHalfOpenEnabled: true # Bật tự động chuyển mạch sau khi hết thời gian chờ
+        baseConfig: default
+      catalogFilesCircuitBreaker:
+        baseConfig: default
+      loanCircuitBreaker:
+        baseConfig: default
+      memberAuthCircuitBreaker:
+        baseConfig: default
+      memberCircuitBreaker:
+        baseConfig: default
+      fineCircuitBreaker:
+        baseConfig: default
   timelimiter:
+    configs:
+      default:
+        timeoutDuration: ${GATEWAY_CIRCUIT_TIMEOUT:18s}
+        cancelRunningFuture: true
     instances:
       catalogCircuitBreaker:
-        timeoutDuration: 20s           # Đặt dài ra để không chém ngang quá trình Retry
+        baseConfig: default
+      catalogFilesCircuitBreaker:
+        timeoutDuration: ${GATEWAY_FILE_CIRCUIT_TIMEOUT:35s}
+        cancelRunningFuture: true
+      loanCircuitBreaker:
+        baseConfig: default
+      memberAuthCircuitBreaker:
+        timeoutDuration: ${GATEWAY_AUTH_CIRCUIT_TIMEOUT:18s}
+        cancelRunningFuture: true
+      memberCircuitBreaker:
+        baseConfig: default
+      fineCircuitBreaker:
+        baseConfig: default
 
 eureka:
   instance:
@@ -92,6 +232,9 @@ eureka:
     service-url:
       defaultZone: http://localhost:8761/eureka/
 
-logging:
-  level:
-    org.springframework.cloud.gateway.filter.factory.RetryGatewayFilterFactory: TRACE
+keycloak:
+  issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8180/realms/digilib-realm}
+
+gateway:
+  cors:
+    allowed-origins: ${GATEWAY_CORS_ALLOWED_ORIGINS:http://localhost:5173,http://127.0.0.1:5173,http://localhost:4173,http://127.0.0.1:4173}

@@ -2,4 +2,21 @@ spring:
   application:
     name: api-gateway
   config:
-    import: "optional:configserver:http://localhost:8888"
+    import:
+      - "optional:file:.env[.properties]"
+      - "optional:file:../../.env[.properties]"
+      - "${CONFIG_SERVER_IMPORT:optional:configserver:http://localhost:8888}"
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${keycloak.issuer-uri}
+
+keycloak:
+  # Gateway validates JWT signatures through issuer discovery; it never needs
+  # the confidential client's secret.
+  issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8180/realms/digilib-realm}
+
+gateway:
+  cors:
+    allowed-origins: ${GATEWAY_CORS_ALLOWED_ORIGINS:http://localhost:5173,http://127.0.0.1:5173,http://localhost:4173,http://127.0.0.1:4173}

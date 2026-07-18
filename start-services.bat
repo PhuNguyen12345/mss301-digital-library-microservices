@@ -1,4 +1,10 @@
 @echo off
+if not exist ".env" if "%KEYCLOAK_CLIENT_SECRET%"=="" (
+  echo ERROR: KEYCLOAK_CLIENT_SECRET is not configured.
+  echo Copy .env.example to .env and set the secret regenerated in Keycloak.
+  exit /b 1
+)
+
 echo Starting Digilib Microservices...
 
 echo.

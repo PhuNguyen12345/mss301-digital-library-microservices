@@ -1,3 +1,7 @@
+server:
+  address: ${INTERNAL_SERVICE_BIND_ADDRESS:127.0.0.1}
+  port: ${FINE_SERVICE_PORT:8084}
+
 spring:
   application:
     name: fine-service
@@ -27,3 +31,11 @@ sepay:
   payment-code-prefix: ${SEPAY_PAYMENT_CODE_PREFIX:FINE}
   payment-ttl: ${SEPAY_PAYMENT_TTL:15m}
   webhook-replay-tolerance: ${SEPAY_WEBHOOK_REPLAY_TOLERANCE:5m}
+
+eureka:
+  instance:
+    hostname: ${INTERNAL_SERVICE_HOST:localhost}
+    prefer-ip-address: false
+  client:
+    service-url:
+      defaultZone: ${EUREKA_URI:http://localhost:8761/eureka/}

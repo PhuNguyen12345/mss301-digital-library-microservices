@@ -2,32 +2,59 @@ spring:
   application:
     name: member-service
   config:
-    import: "optional:configserver:http://localhost:8888"
+    import:
+      # Supports IDE runs whose working directory is the repository root.
+      - "optional:file:.env[.properties]"
+      # Supports Maven/module runs from services/member-service.
+      - "optional:file:../../.env[.properties]"
+      - "${CONFIG_SERVER_IMPORT:optional:configserver:http://localhost:8888}"
 
+  # Reactive Database Setup via R2DBC
   r2dbc:
-    url: ${MEMBER_DB_URL:r2dbc:postgresql://localhost:5432/digilib_member}
-    username: ${MEMBER_DB_USERNAME:postgres}
-    password: ${MEMBER_DB_PASSWORD:123}
+    url: r2dbc:postgresql://${MEMBER_DB_HOST:localhost}:${MEMBER_DB_PORT:5432}/${MEMBER_DB_NAME:digilib_member}
+    username: ${MEMBER_DB_USERNAME}
+    password: ${MEMBER_DB_PASSWORD}
+  # Flyway Migration Setup (operates via JDBC)
+  flyway:
+    enabled: true
+    url: jdbc:postgresql://${MEMBER_DB_HOST:localhost}:${MEMBER_DB_PORT:5432}/${MEMBER_DB_NAME:digilib_member}
+    user: ${MEMBER_DB_USERNAME}
+    password: ${MEMBER_DB_PASSWORD}
+    locations: classpath:db/migration
+    baseline-on-migrate: true
 
-  sql:
-    init:
-      mode: always
-
+  # Keep one canonical issuer in every environment. JWK discovery is derived
+  # from this issuer, avoiding a second URL that can drift independently.
   security:
     oauth2:
       resourceserver:
         jwt:
-          issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8180/realms/digilib-realm}
-          jwk-set-uri: ${KEYCLOAK_JWK_SET_URI:http://localhost:8180/realms/digilib-realm/protocol/openid-connect/certs}
+          issuer-uri: ${keycloak.issuer-uri}
 
-server:
-  port: ${MEMBER_SERVICE_PORT:8083}
-
-services:
-  internal-api-key: ${INTERNAL_API_KEY:local-dev-internal-key}
 
 eureka:
+  instance:
+    hostname: ${INTERNAL_SERVICE_HOST:localhost}
+    prefer-ip-address: false
   client:
-    enabled: ${EUREKA_ENABLED:true}
     service-url:
-      defaultZone: ${EUREKA_URL:http://localhost:8761/eureka/}
+      defaultZone: http://localhost:8761/eureka/
+
+keycloak:
+  base-url: ${KEYCLOAK_BASE_URL:http://localhost:8180}
+  realm: ${KEYCLOAK_REALM:digilib-realm}
+  issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8180/realms/digilib-realm}
+  client-id: ${KEYCLOAK_CLIENT_ID:digilib-auth}
+  # No default on purpose: a confidential client must never start with a
+  # repository-owned or well-known secret.
+  client-secret: ${KEYCLOAK_CLIENT_SECRET}
+
+services:
+  # Shared only by trusted service-to-service callers. No repository default.
+  internal-api-key: ${INTERNAL_API_KEY}
+
+server:
+  # Local Java processes are reachable through the gateway only. Container
+  # deployments must override this to 0.0.0.0 and keep the port un-published.
+  address: ${INTERNAL_SERVICE_BIND_ADDRESS:127.0.0.1}
+  port: ${MEMBER_SERVICE_PORT:8083}
