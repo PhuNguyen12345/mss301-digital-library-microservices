@@ -1,0 +1,20 @@
+name: CD - Eureka Server
+
+on:
+  push:
+    tags:
+      - "eureka-server/*"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  eureka-server:
+    uses: ./.github/workflows/_service-cd.yml
+    with:
+      module: infra/eureka-server
+      service_name: eureka-server
+      host_port: "8761"
+      container_port: "8761"
+    secrets: inherit
