@@ -25,6 +25,9 @@ jobs:
     environment:
       name: production
     steps:
+      - name: Compute short commit SHA
+        run: echo "SHORT_SHA=${GITHUB_SHA:0:7}" >> "$GITHUB_ENV"
+
       - name: Load secrets
         run: |
           touch secret-file
@@ -49,4 +52,4 @@ jobs:
             --network-alias ${{ inputs.service_name }} \
             --restart unless-stopped \
             -p ${{ inputs.host_port }}:${{ inputs.container_port }} \
-            "${{ secrets.DOCKER_USERNAME }}/${{ inputs.service_name }}:${{ github.sha }}"
+            "${{ secrets.DOCKER_USERNAME }}/${{ inputs.service_name }}:${{ env.SHORT_SHA }}"
