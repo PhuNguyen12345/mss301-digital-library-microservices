@@ -7,7 +7,7 @@ spring:
       - "optional:file:.env[.properties]"
       # Supports Maven/module runs from services/member-service.
       - "optional:file:../../.env[.properties]"
-      - "optional:configserver:http://localhost:8888"
+      - "${CONFIG_SERVER_IMPORT:optional:configserver:http://localhost:8888}"
 
   # Reactive Database Setup via R2DBC
   r2dbc:

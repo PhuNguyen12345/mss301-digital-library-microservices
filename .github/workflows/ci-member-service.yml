@@ -1,0 +1,30 @@
+name: CI - Member Service
+
+on:
+  push:
+    paths:
+      - services/member-service/**
+      - pom.xml
+      - Dockerfile
+      - .dockerignore
+      - .github/workflows/_service-ci.yml
+      - .github/workflows/ci-member-service.yml
+  pull_request:
+    paths:
+      - services/member-service/**
+      - pom.xml
+      - Dockerfile
+      - .dockerignore
+      - .github/workflows/_service-ci.yml
+      - .github/workflows/ci-member-service.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  member-service:
+    uses: ./.github/workflows/_service-ci.yml
+    with:
+      module: services/member-service
+      image_name: member-service

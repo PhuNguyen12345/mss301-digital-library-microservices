@@ -24,10 +24,10 @@ jobs:
           java-version: "21"
           cache: maven
 
-      - name: Test gateway, member and catalog
+      - name: Test gateway and all business services
         run: >-
           mvn --batch-mode --no-transfer-progress
-          -pl infra/api-gateway,services/member-service,services/catalog-service
+          -pl infra/api-gateway,services/catalog-service,services/member-service,services/loan-service,services/fine-service,services/notification-service
           -am test
 
   configuration-checks:
@@ -36,8 +36,22 @@ jobs:
     env:
       KEYCLOAK_ADMIN_PASSWORD: ci-placeholder-admin-password
       KEYCLOAK_DB_PASSWORD: ci-placeholder-database-password
-      POSTGRES_USER: ci-user
-      POSTGRES_PASSWORD: ci-placeholder-postgres-password
+      KEYCLOAK_BASE_URL: https://keycloak.example.test
+      KEYCLOAK_REALM: digilib-realm
+      KEYCLOAK_ISSUER_URI: https://keycloak.example.test/realms/digilib-realm
+      KEYCLOAK_CLIENT_ID: digilib-auth
+      KEYCLOAK_CLIENT_SECRET: ci-placeholder-client-secret
+      INTERNAL_API_KEY: ci-placeholder-internal-api-key-at-least-32-characters
+      MEMBER_DB_USERNAME: ci-member
+      MEMBER_DB_PASSWORD: ci-placeholder-member-password
+      CATALOG_DB_USERNAME: ci-catalog
+      CATALOG_DB_PASSWORD: ci-placeholder-catalog-password
+      LOAN_DB_USERNAME: ci-loan
+      LOAN_DB_PASSWORD: ci-placeholder-loan-password
+      FINE_DB_USERNAME: ci-fine
+      FINE_DB_PASSWORD: ci-placeholder-fine-password
+      NOTIFICATION_DB_USERNAME: ci-notification
+      NOTIFICATION_DB_PASSWORD: ci-placeholder-notification-password
       LOKI_GCS_BUCKET: ci-placeholder-bucket
       GRAFANA_ADMIN_PASSWORD: ci-placeholder-grafana-password
     steps:
@@ -48,6 +62,11 @@ jobs:
         run: |
           docker compose -f docker-compose.yml config --quiet
           docker compose -f docker-compose.infra.yml config --quiet
+          docker compose -f docker-compose.catalog.yml config --quiet
+          docker compose -f docker-compose.member.yml config --quiet
+          docker compose -f docker-compose.loan.yml config --quiet
+          docker compose -f docker-compose.fine.yml config --quiet
+          docker compose -f docker-compose.notification.yml config --quiet
           docker compose -f infra/monitoring/docker-compose-infra.yaml config --quiet
 
       - name: Reject tracked environment and private-key files
