@@ -230,7 +230,7 @@ eureka:
     prefer-ip-address: true
   client:
     service-url:
-      defaultZone: http://localhost:8761/eureka/
+      defaultZone: ${EUREKA_URI:http://eureka-server:8761/eureka/}
 
 keycloak:
   issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8180/realms/digilib-realm}

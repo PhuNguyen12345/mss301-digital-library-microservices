@@ -35,11 +35,11 @@ spring:
 
 eureka:
   instance:
-    hostname: ${INTERNAL_SERVICE_HOST:localhost}
+    hostname: ${INTERNAL_SERVICE_HOST:notification-service}
     prefer-ip-address: false
   client:
     service-url:
-      defaultZone: ${EUREKA_URI:http://localhost:8761/eureka/}
+      defaultZone: ${EUREKA_URI:http://eureka-server:8761/eureka/}
 
 notification:
   jobs:
