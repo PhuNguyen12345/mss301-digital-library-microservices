@@ -34,8 +34,7 @@ public class NotificationClientAdapter {
             restClient.post()
                     .uri("/api/notifications/return-confirmation")
                     .header("X-Internal-Api-Key", internalApiKey)
-                    .body(new ReturnConfirmationRequest(
-                            legacyStudentId(memberId), memberEmail, bookTitle, returnedAt))
+                    .body(new ReturnConfirmationRequest(memberId, memberEmail, bookTitle, returnedAt))
                     .retrieve()
                     .toBodilessEntity();
         } catch (RestClientException exception) {
@@ -44,20 +43,8 @@ public class NotificationClientAdapter {
         }
     }
 
-    private int legacyStudentId(String memberId) {
-        try {
-            int value = Integer.parseInt(memberId);
-            if (value > 0) {
-                return value;
-            }
-        } catch (NumberFormatException ignored) {
-            // Notification Service currently uses an Integer studentId while Member Service uses String IDs.
-        }
-        return Math.floorMod(memberId.hashCode(), Integer.MAX_VALUE - 1) + 1;
-    }
-
     private record ReturnConfirmationRequest(
-            Integer studentId,
+            String studentId,
             String studentEmail,
             String bookTitle,
             LocalDateTime returnedAt

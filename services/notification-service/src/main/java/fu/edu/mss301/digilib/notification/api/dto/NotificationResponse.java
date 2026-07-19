@@ -14,11 +14,12 @@ public class NotificationResponse {
 
     private Integer id;
     private String eventType;
-    private Integer studentId;
+    private String studentId;
     private String studentEmail;
     private NotificationChannel channel;
     private NotificationStatus status;
     private LocalDateTime sentAt;
+    private LocalDateTime readAt;
     private String failureReason;
 
     public static NotificationResponse from(NotificationLog log) {
@@ -30,6 +31,7 @@ public class NotificationResponse {
                 .channel(log.getChannel())
                 .status(log.getStatus())
                 .sentAt(log.getSentAt())
+                .readAt(log.getReadAt())
                 .failureReason(log.getFailureReason())
                 .build();
     }
