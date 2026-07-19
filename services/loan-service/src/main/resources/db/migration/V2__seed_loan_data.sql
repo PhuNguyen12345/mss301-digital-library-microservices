@@ -41,7 +41,8 @@ INSERT INTO loans (
 
     (6, 'sample-student-003', 6, NULL, 'DIGITAL', 'RETURNED',
      '2026-04-10 11:00:00', '2026-04-24 11:00:00', '2026-04-20 18:00:00',
-     0, 3, 'seed-borrow-006', '2026-04-10 11:00:00', '2026-04-20 18:00:00', 0);
+     0, 3, 'seed-borrow-006', '2026-04-10 11:00:00', '2026-04-20 18:00:00', 0)
+ON CONFLICT (loan_id) DO NOTHING;
 
 INSERT INTO loan_status_history (
     id,
@@ -62,7 +63,8 @@ INSERT INTO loan_status_history (
     (8, 4, 'BORROWED', 'RETURNED', 'LIBRARIAN', 'Book returned late', '2026-06-02 09:10:00'),
     (9, 5, NULL, 'BORROWED', 'SYSTEM', 'Digital loan created', '2026-07-12 13:45:00'),
     (10, 6, NULL, 'BORROWED', 'SYSTEM', 'Digital loan created', '2026-04-10 11:00:00'),
-    (11, 6, 'BORROWED', 'RETURNED', 'sample-student-003', 'Digital loan completed', '2026-04-20 18:00:00');
+    (11, 6, 'BORROWED', 'RETURNED', 'sample-student-003', 'Digital loan completed', '2026-04-20 18:00:00')
+ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO saga_outbox (
     event_id,
@@ -85,7 +87,8 @@ INSERT INTO saga_outbox (
     (5, 4, 'BookReturnedLateEvent', '{"loanId":4,"memberId":"sample-lecturer-001","bookId":5,"copyId":8}',
      'PROCESSED', 0, '2026-06-02 09:10:00', '2026-06-02 09:10:05'),
     (6, 5, 'BookBorrowedEvent', '{"loanId":5,"memberId":"sample-lecturer-001","bookId":3,"bookType":"DIGITAL"}',
-     'PROCESSING', 1, '2026-07-12 13:45:00', NULL);
+     'PROCESSING', 1, '2026-07-12 13:45:00', NULL)
+ON CONFLICT (event_id) DO NOTHING;
 
 INSERT INTO saga_log (
     saga_id,
@@ -105,7 +108,8 @@ INSERT INTO saga_log (
     (6, 4, 'RENEW_BOOK', 'DUE_DATE_UPDATED', 'COMPLETED', 0, '2026-05-20 08:59:58', '2026-05-20 09:00:01'),
     (7, 4, 'RETURN_BOOK', 'COPY_RELEASED', 'COMPLETED', 0, '2026-06-02 09:09:58', '2026-06-02 09:10:01'),
     (8, 5, 'BORROW_BOOK', 'DIGITAL_ACCESS_GRANTED', 'COMPLETED', 0, '2026-07-12 13:44:58', '2026-07-12 13:45:01'),
-    (9, 6, 'RETURN_BOOK', 'DIGITAL_ACCESS_CLOSED', 'COMPLETED', 0, '2026-04-20 17:59:58', '2026-04-20 18:00:01');
+    (9, 6, 'RETURN_BOOK', 'DIGITAL_ACCESS_CLOSED', 'COMPLETED', 0, '2026-04-20 17:59:58', '2026-04-20 18:00:01')
+ON CONFLICT (saga_id) DO NOTHING;
 
 INSERT INTO reservations (
     reservation_id,
@@ -119,7 +123,8 @@ INSERT INTO reservations (
 ) VALUES
     (1, 1001, 1, 'WAITING', 1, '2026-07-16 08:00:00', NULL, NULL),
     (2, 1002, 7, 'NOTIFIED', 1, '2026-07-10 10:00:00', '2026-07-17 09:00:00', '2026-07-19 09:00:00'),
-    (3, 1003, 3, 'COMPLETED', 1, '2026-06-01 14:00:00', '2026-06-05 08:30:00', '2026-06-07 08:30:00');
+    (3, 1003, 3, 'COMPLETED', 1, '2026-06-01 14:00:00', '2026-06-05 08:30:00', '2026-06-07 08:30:00')
+ON CONFLICT (reservation_id) DO NOTHING;
 
 ALTER TABLE loans ALTER COLUMN loan_id RESTART WITH 7;
 ALTER TABLE loan_status_history ALTER COLUMN id RESTART WITH 12;

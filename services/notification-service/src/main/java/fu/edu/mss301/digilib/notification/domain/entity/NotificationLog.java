@@ -25,7 +25,7 @@ public class NotificationLog {
     private NotificationPolicy template;
 
     @Column(name = "student_id", nullable = false)
-    private Integer studentId;
+    private String studentId;
 
     @Column(name = "student_email", length = 255)
     private String studentEmail;
