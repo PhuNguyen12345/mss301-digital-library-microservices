@@ -2,6 +2,9 @@ server:
   address: ${INTERNAL_SERVICE_BIND_ADDRESS:0.0.0.0}
   port: ${NOTIFICATION_SERVICE_PORT:8085}
 
+keycloak:
+  issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8180/realms/digilib-realm}
+
 spring:
   application:
     name: notification-service
@@ -23,8 +26,7 @@ spring:
         jwt:
           issuer-uri: ${keycloak.issuer-uri}
 
-keycloak:
-  issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8180/realms/digilib-realm}
+
 
   jpa:
     hibernate:
