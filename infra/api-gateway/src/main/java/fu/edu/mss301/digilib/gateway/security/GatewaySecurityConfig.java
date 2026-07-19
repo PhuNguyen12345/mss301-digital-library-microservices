@@ -43,6 +43,7 @@ public class GatewaySecurityConfig {
                         // The existing highest-priority Gateway filter returns 404
                         // without forwarding this private service-to-service path.
                         .pathMatchers("/api/v1/members/internal/**").permitAll()
+                        .pathMatchers(HttpMethod.GET,"/files/images/**").permitAll()
                         .anyExchange().authenticated())
                 .exceptionHandling(exceptions -> exceptions
                         .authenticationEntryPoint(securityErrorWriter)
