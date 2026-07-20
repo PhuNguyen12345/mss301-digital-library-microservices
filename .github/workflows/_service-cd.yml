@@ -30,8 +30,7 @@ jobs:
 
       - name: Load secrets
         run: |
-          touch secret-file
-          gcloud secrets versions access latest --secret="mutual-secret" >> secret-file
+          gcloud secrets versions access latest --secret="mutual-secret" > secret-file
 
       - name: Ensure shared network exists
         run: docker network create digilib-network 2>/dev/null || true
