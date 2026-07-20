@@ -35,8 +35,8 @@ services:
       INFRA_BIND_ADDRESS: 0.0.0.0
       SPRING_PROFILES_ACTIVE: native
       SPRING_CLOUD_CONFIG_SERVER_NATIVE_SEARCH_LOCATIONS: file:/config-repo
-      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
-      EUREKA_INSTANCE_HOSTNAME: config-server
+      EUREKA_URL: http://eureka-server:8761/eureka/
+      INTERNAL_SERVICE_HOST: config-server
     volumes:
       - ./infra/config-repo:/config-repo:ro
     ports:
