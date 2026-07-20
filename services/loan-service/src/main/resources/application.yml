@@ -33,6 +33,17 @@ spring:
       hibernate:
         format_sql: true
 
+  # Keep one canonical issuer in every environment. JWK discovery is derived
+  # from this issuer, avoiding a second URL that can drift independently.
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${keycloak.issuer-uri}
+
+keycloak:
+  issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8180/realms/digilib-realm}
+
 services:
   internal-api-key: ${INTERNAL_API_KEY}
   catalog:
