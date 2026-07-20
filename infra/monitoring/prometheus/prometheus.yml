@@ -19,5 +19,8 @@ scrape_configs:
           # so traffic stays inside the VPC — never the external IP.
           - APP_VM_IP:8761    # eureka-server
           - APP_VM_IP:8080    # api-gateway
-          - APP_VM_IP:8081    # notification-service
-          - APP_VM_IP:8082    # fine-service
+          - APP_VM_IP:8081    # catalog-service
+          - APP_VM_IP:8082    # member-service
+          - APP_VM_IP:8083    # loan-service
+          - APP_VM_IP:8084    # fine-service
+          - APP_VM_IP:8085    # notification-service

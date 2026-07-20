@@ -57,4 +57,4 @@ server:
   # Local Java processes are reachable through the gateway only. Container
   # deployments must override this to 0.0.0.0 and keep the port un-published.
   address: ${INTERNAL_SERVICE_BIND_ADDRESS:0.0.0.0}
-  port: ${MEMBER_SERVICE_PORT:8083}
+  port: ${MEMBER_SERVICE_PORT:8082}

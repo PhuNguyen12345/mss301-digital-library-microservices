@@ -22,12 +22,12 @@ eureka:
 services:
   internal-api-key: test-only-internal-api-key
   catalog:
-    base-url: http://localhost:8082
+    base-url: http://localhost:8081
     default-book-value: 250000
   member:
-    base-url: http://localhost:8083
+    base-url: http://localhost:8082
   fine:
-    base-url: http://localhost:8086
+    base-url: http://localhost:8084
   notification:
     base-url: http://localhost:8085
 
