@@ -34,9 +34,9 @@ spring:
           issuer-uri: ${keycloak.issuer-uri}
 
 keycloak:
-  base-url: ${KEYCLOAK_BASE_URL:http://localhost:8180}
+  base-url: ${KEYCLOAK_BASE_URL:https://keycloak.huynq.space}
   realm: ${KEYCLOAK_REALM:digilib-realm}
-  issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8180/realms/digilib-realm}
+  issuer-uri: ${KEYCLOAK_ISSUER_URI:https://keycloak.huynq.space/realms/digilib-realm}
   client-id: ${KEYCLOAK_CLIENT_ID:digilib-auth}
   client-secret: ${KEYCLOAK_CLIENT_SECRET}
 

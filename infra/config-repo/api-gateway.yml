@@ -261,7 +261,7 @@ eureka:
       defaultZone: ${EUREKA_URI:http://eureka-server:8761/eureka/}
 
 keycloak:
-  issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8180/realms/digilib-realm}
+  issuer-uri: ${KEYCLOAK_ISSUER_URI:https://keycloak.huynq.space/realms/digilib-realm}
 
 gateway:
   cors:
