@@ -25,7 +25,7 @@ spring:
 services:
   internal-api-key: ${INTERNAL_API_KEY}
   member:
-    base-url: ${MEMBER_SERVICE_URL:http://localhost:8083}
+    base-url: ${MEMBER_SERVICE_URL:http://localhost:8082}
   notification:
     base-url: ${NOTIFICATION_SERVICE_URL:http://localhost:8085}
 
