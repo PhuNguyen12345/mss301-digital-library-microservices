@@ -1,7 +1,7 @@
 package fu.edu.mss301.digilib.loan.api.dto;
 
-import fu.edu.mss301.digilib.loan.domain.aggregate.Loan;
-import fu.edu.mss301.digilib.loan.domain.vo.LoanStatus;
+import fu.edu.mss301.digilib.loan.domain.entity.BorrowRequest;
+import fu.edu.mss301.digilib.loan.domain.vo.BorrowRequestStatus;
 
 import java.time.LocalDateTime;
 
@@ -10,17 +10,30 @@ public record BorrowRequestResponse(
         String memberId,
         Long bookId,
         String bookType,
-        LoanStatus status,
+        String status,
+        Long loanId,
         LocalDateTime requestedAt,
-        LocalDateTime reviewedAt,
-        String reviewedBy,
-        String rejectionReason,
-        Long loanId
+        LocalDateTime processedAt,
+        String processedBy,
+        String rejectionReason
 ) {
-    public static BorrowRequestResponse from(Loan loan) {
-        return new BorrowRequestResponse(loan.getLoanId(), loan.getMemberId(), loan.getBookId(),
-                loan.getBookType(), loan.getStatus(), loan.getCreatedAt(), loan.getReviewedAt(),
-                loan.getReviewedBy(), loan.getRejectionReason(),
-                loan.getStatus() == LoanStatus.BORROWED ? loan.getLoanId() : null);
+    public static BorrowRequestResponse from(BorrowRequest request) {
+        String effectiveStatus = request.getStatus().name();
+        Long approvedLoanId = null;
+        if (request.getStatus() == BorrowRequestStatus.APPROVED && request.getLoan() != null) {
+            effectiveStatus = request.getLoan().getStatus().name();
+            approvedLoanId = request.getLoan().getLoanId();
+        }
+        return new BorrowRequestResponse(
+                request.getRequestId(),
+                request.getMemberId(),
+                request.getBookId(),
+                request.getBookType(),
+                effectiveStatus,
+                approvedLoanId,
+                request.getRequestedAt(),
+                request.getProcessedAt(),
+                request.getProcessedBy(),
+                request.getRejectionReason());
     }
 }

@@ -25,6 +25,8 @@ import java.util.List;
 @RequiredArgsConstructor
 public class LoanController {
 
+    private static final String AUTHENTICATED_USER_HEADER = "X-Authenticated-User-Id";
+
     private final BorrowBookUseCase borrowBookUseCase;
     private final ManageLoanUseCase manageLoanUseCase;
 
@@ -44,9 +46,8 @@ public class LoanController {
     @PutMapping("/loans/{loanId}/renew")
     public LoanResponse renew(
             @PathVariable Long loanId,
-            @AuthenticationPrincipal Jwt jwt) {
-        ensureOwnerOrStaff(manageLoanUseCase.findById(loanId).getMemberId(), jwt);
-        return LoanResponse.from(manageLoanUseCase.renew(loanId, jwt.getSubject()));
+            @RequestHeader(name = "X-Actor-Id", defaultValue = "SYSTEM") String actorId) {
+        return LoanResponse.from(manageLoanUseCase.renew(loanId, actorId));
     }
 
     @PostMapping("/loans/{loanId}/lost")
@@ -55,10 +56,8 @@ public class LoanController {
     }
 
     @GetMapping("/loans/{loanId}")
-    public LoanResponse findById(@PathVariable Long loanId, @AuthenticationPrincipal Jwt jwt) {
-        var loan = manageLoanUseCase.findById(loanId);
-        ensureOwnerOrStaff(loan.getMemberId(), jwt);
-        return LoanResponse.from(loan);
+    public LoanResponse findById(@PathVariable Long loanId) {
+        return LoanResponse.from(manageLoanUseCase.findById(loanId));
     }
 
     @GetMapping("/loans")
@@ -66,9 +65,14 @@ public class LoanController {
         return manageLoanUseCase.findAll(pageable).map(LoanResponse::from);
     }
 
+    @GetMapping("/loans/member/{memberId}")
+    public List<LoanResponse> findByMember(@PathVariable String memberId) {
+        return manageLoanUseCase.findByMember(memberId).stream().map(LoanResponse::from).toList();
+    }
+
     @GetMapping("/loans/my-loans")
-    public List<LoanResponse> findByMember(@AuthenticationPrincipal Jwt jwt) {
-        return manageLoanUseCase.findByMember(jwt.getSubject()).stream().map(LoanResponse::from).toList();
+    public List<LoanResponse> findMine(@RequestHeader(AUTHENTICATED_USER_HEADER) String memberId) {
+        return manageLoanUseCase.findByMember(memberId).stream().map(LoanResponse::from).toList();
     }
 
     private void ensureOwnerOrStaff(String ownerId, Jwt jwt) {
@@ -88,4 +92,5 @@ public class LoanController {
         return roleList.stream().map(String::valueOf)
                 .anyMatch(role -> role.equalsIgnoreCase("admin") || role.equalsIgnoreCase("librarian"));
     }
+
 }
