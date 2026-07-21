@@ -34,6 +34,17 @@ class LoanTest {
     }
 
     @Test
+    void sameReturnIdempotencyKeyIsRecognizedAsReplay() {
+        Loan loan = Loan.create("member-1", 2L, 3L, "PHYSICAL",
+                LocalDateTime.now().plusDays(14), "borrow-return-replay");
+
+        loan.returnBook("librarian-1", "return-1");
+
+        assertTrue(loan.isReturnReplay("return-1"));
+        assertFalse(loan.isReturnReplay("return-2"));
+    }
+
+    @Test
     void returnedLoanCannotBeRenewed() {
         Loan loan = Loan.create("member-1", 2L, 3L, "PHYSICAL",
                 LocalDateTime.now().plusDays(14), "borrow-3");

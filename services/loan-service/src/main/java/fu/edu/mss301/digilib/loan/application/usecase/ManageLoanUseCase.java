@@ -50,8 +50,15 @@ public class ManageLoanUseCase {
     }
 
     @Transactional
-    public Loan returnBook(Long loanId, String changedBy) {
-        Loan loan = findById(loanId);
+    public Loan returnBook(Long loanId, String returnIdempotencyKey, String changedBy) {
+        if (returnIdempotencyKey == null || returnIdempotencyKey.isBlank()) {
+            throw new IllegalArgumentException("Return idempotency key is required");
+        }
+        Loan loan = loanRepository.findByIdForUpdate(loanId)
+                .orElseThrow(() -> new IllegalArgumentException("Loan not found: " + loanId));
+        if (loan.isReturnReplay(returnIdempotencyKey)) {
+            return loan;
+        }
         ensureActive(loan);
         LocalDateTime returnedAt = LocalDateTime.now();
         long overdueDays = overdueDays(loan.getDueDate(), returnedAt);
@@ -62,10 +69,10 @@ public class ManageLoanUseCase {
                     details.fineContext(), returnedAt.toLocalDate(), overdueDays);
         }
 
-        loan.returnBook(changedBy);
+        loan.returnBook(changedBy, returnIdempotencyKey);
         Loan saved = loanRepository.save(loan);
-        catalogClient.releaseBook(saved.getCopyId());
         outboxRepository.save(event(saved, overdueDays > 0 ? "BookReturnedLateEvent" : "BookReturnedEvent"));
+        catalogClient.releaseBook(saved.getCopyId());
         notificationClient.sendReturnConfirmation(
                 saved.getLoanId(), saved.getMemberId(), details.memberEmail(), details.bookTitle(), saved.getReturnedAt());
         return saved;

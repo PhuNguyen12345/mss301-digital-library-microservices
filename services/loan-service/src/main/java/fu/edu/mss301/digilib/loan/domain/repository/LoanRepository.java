@@ -2,8 +2,10 @@ package fu.edu.mss301.digilib.loan.domain.repository;
 
 import fu.edu.mss301.digilib.loan.domain.aggregate.Loan;
 import org.springframework.data.jpa.repository.JpaRepository;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import fu.edu.mss301.digilib.loan.domain.vo.LoanStatus;
@@ -15,6 +17,10 @@ import java.util.List;
 public interface LoanRepository extends JpaRepository<Loan, Long> {
 
     Optional<Loan> findByIdempotencyKey(String idempotencyKey);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT l FROM Loan l WHERE l.loanId = :loanId")
+    Optional<Loan> findByIdForUpdate(@Param("loanId") Long loanId);
 
     List<Loan> findByMemberIdOrderByBorrowedAtDesc(String memberId);
 

@@ -14,6 +14,11 @@ spring:
       ddl-auto: create-drop
   flyway:
     enabled: false
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: http://localhost/test-only-jwks
 
 eureka:
   client:

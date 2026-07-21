@@ -48,21 +48,9 @@ public class InternalFineService {
     @Transactional
     public FineResponse createOverdueReturnFine(OverdueReturnFineRequest request) {
         Long loanId = parseLoanId(request.loanId());
-        if (fineRepository.findByLoanIdForUpdate(loanId).isPresent()) {
-            throw new BusinessConflictException("A fine already exists for loan " + request.loanId());
-        }
-
-        Fine fine = activeAggregate().createFineFor(
-                loanId,
-                request.studentId(),
-                null,
-                request.dueDate().atStartOfDay(),
-                request.returnDate().atStartOfDay(),
-                FineReason.OVERDUE_RETURN,
-                0L);
-        fine.setBookId(parseBookId(request.bookId()));
-
-        return FineResponse.from(fineRepository.save(fine));
+        return fineRepository.findByLoanIdForUpdate(loanId)
+                .map(existing -> reuseOrConvertToReturnFine(existing, request))
+                .orElseGet(() -> createReturnFine(loanId, request));
     }
 
     @Transactional
@@ -106,6 +94,52 @@ public class InternalFineService {
         aggregate.recalculate(existing, null, compensationAmount);
 
         return FineResponse.from(fineRepository.save(existing));
+    }
+
+    /**
+     * A retry of Loan Service's return workflow must not fail after Fine Service
+     * has already committed its side effect. A threshold fine for the same loan
+     * is converted to the final overdue-return fine; an existing return fine is
+     * returned unchanged so the original return date and amount remain stable.
+     */
+    private FineResponse reuseOrConvertToReturnFine(Fine existing, OverdueReturnFineRequest request) {
+        if (!existing.getStudentId().equals(request.studentId())) {
+            throw new BusinessConflictException(
+                    "Fine for loan " + request.loanId() + " belongs to another student");
+        }
+
+        if (existing.getReason() == FineReason.OVERDUE_RETURN) {
+            return FineResponse.from(existing);
+        }
+        if (existing.getReason() == FineReason.LOST_BOOK) {
+            throw new BusinessConflictException(
+                    "Loan " + request.loanId() + " has already been reported lost");
+        }
+        if (existing.getStatus() != FineStatus.PENDING) {
+            throw new BusinessConflictException(
+                    "Fine for loan " + request.loanId() + " is already " + existing.getStatus()
+                            + " and cannot be converted to an overdue-return fine");
+        }
+
+        existing.setReason(FineReason.OVERDUE_RETURN);
+        existing.setDueDate(request.dueDate().atStartOfDay());
+        existing.setBookId(parseBookId(request.bookId()));
+        FineAggregate.create(existing.getFinePolicy())
+                .recalculate(existing, request.returnDate().atStartOfDay(), 0L);
+        return FineResponse.from(fineRepository.save(existing));
+    }
+
+    private FineResponse createReturnFine(Long loanId, OverdueReturnFineRequest request) {
+        Fine fine = activeAggregate().createFineFor(
+                loanId,
+                request.studentId(),
+                null,
+                request.dueDate().atStartOfDay(),
+                request.returnDate().atStartOfDay(),
+                FineReason.OVERDUE_RETURN,
+                0L);
+        fine.setBookId(parseBookId(request.bookId()));
+        return FineResponse.from(fineRepository.save(fine));
     }
 
     private FineResponse createThresholdOrLostFine(

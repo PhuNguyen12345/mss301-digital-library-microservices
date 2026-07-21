@@ -53,6 +53,9 @@ public class Loan {
     @Column(name = "idempotency_key", nullable = false, unique = true)
     private String idempotencyKey;
 
+    @Column(name = "return_idempotency_key", unique = true)
+    private String returnIdempotencyKey;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
@@ -202,16 +205,30 @@ public class Loan {
     }
 
     public void returnBook(String changedBy) {
+        returnBook(changedBy, null);
+    }
+
+    public void returnBook(String changedBy, String returnIdempotencyKey) {
 
         if (status != LoanStatus.BORROWED && status != LoanStatus.OVERDUE)
             throw new IllegalStateException(
                     "Only an active or overdue loan can be returned");
 
+        if (returnIdempotencyKey != null && returnIdempotencyKey.isBlank())
+            throw new IllegalArgumentException("Return idempotency key must not be blank");
+
         LoanStatus previousStatus = status;
         status = LoanStatus.RETURNED;
+        this.returnIdempotencyKey = returnIdempotencyKey;
         returnedAt = LocalDateTime.now();
         updatedAt = returnedAt;
         addHistory(previousStatus, status, changedBy, "Book returned");
+    }
+
+    public boolean isReturnReplay(String candidateKey) {
+        return status == LoanStatus.RETURNED
+                && returnIdempotencyKey != null
+                && returnIdempotencyKey.equals(candidateKey);
     }
 
     public void markLost(String changedBy) {
