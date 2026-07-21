@@ -74,7 +74,6 @@ public class LoanController {
         return manageLoanUseCase.findByMember(memberId).stream().map(LoanResponse::from).toList();
     }
 
-
     private void ensureOwnerOrStaff(String ownerId, Jwt jwt) {
         if (ownerId.equals(jwt.getSubject()) || hasStaffRole(jwt))
             return;
