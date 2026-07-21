@@ -26,8 +26,6 @@ spring:
         jwt:
           issuer-uri: ${keycloak.issuer-uri}
 
-
-
   jpa:
     hibernate:
       ddl-auto: validate
