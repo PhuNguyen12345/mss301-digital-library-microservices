@@ -56,6 +56,21 @@ public class KeycloakProperties {
         return adminUserUrl(userId) + "/execute-actions-email";
     }
 
+    /** All realm roles: GET {base}/admin/realms/{realm}/roles */
+    public String adminRolesUrl() {
+        return baseUrl + "/admin/realms/" + realm + "/roles";
+    }
+
+    /** A specific realm role: GET/PUT {base}/admin/realms/{realm}/roles/{roleName} */
+    public String adminRoleUrl(String roleName) {
+        return adminRolesUrl() + "/" + java.net.URLEncoder.encode(roleName, java.nio.charset.StandardCharsets.UTF_8);
+    }
+
+    /** A user's realm role mappings: GET/POST/DELETE {base}/admin/realms/{realm}/users/{id}/role-mappings/realm */
+    public String adminUserRoleMappingsUrl(String userId) {
+        return adminUserUrl(userId) + "/role-mappings/realm";
+    }
+
     public String tokenUrl() {
         return baseUrl + "/realms/" + realm + "/protocol/openid-connect/token";
     }

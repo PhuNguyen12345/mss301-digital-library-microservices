@@ -137,24 +137,27 @@ public class AuthService {
     // =========================================================================
 
     /**
-     * Look up Keycloak user by email and send a password reset verification email.
+     * Best-effort forgot-password flow that closes the user-existence oracle:
+     * always completes successfully regardless of whether the email is
+     * registered, while still sending a reset email when the user exists.
+     *
+     * Previously the endpoint returned {@code 404 USER_NOT_FOUND} when the
+     * email was unknown — that lets attackers enumerate registered addresses.
+     * The endpoint now ignores both "user not found" and "email send failed"
+     * so the observable behavior is identical whether or not the account
+     * exists. The controller layer wraps this with {@code 202 ACCEPTED}.
      */
     public Mono<Void> forgotPassword(String email) {
         return keycloakClient.findUserByEmail(email)
-                .switchIfEmpty(Mono.error(new ApiException(
-                        HttpStatus.NOT_FOUND,
-                        "USER_NOT_FOUND",
-                        "No member account registered with this email address"
-                )))
                 .flatMap(keycloakClient::sendForgotPasswordEmail)
-                .onErrorMap(WebClientResponseException.class, ex -> {
-                    log.error("Failed to trigger forgot password flow for email {}: {}", email, ex.getResponseBodyAsString());
-                    return new ApiException(
-                            HttpStatus.SERVICE_UNAVAILABLE,
-                            "PASSWORD_RESET_EMAIL_FAILED",
-                            "We could not send the password reset email. Please try again later."
-                    );
-                });
+                .onErrorResume(error -> {
+                    log.warn("Forgot-password flow for '{}' could not complete: {}",
+                            email, error.getMessage());
+                    return Mono.empty();
+                })
+                .switchIfEmpty(Mono.fromRunnable(() ->
+                        log.warn("Forgot-password requested for unregistered email")))
+                .then();
     }
 
     // =========================================================================

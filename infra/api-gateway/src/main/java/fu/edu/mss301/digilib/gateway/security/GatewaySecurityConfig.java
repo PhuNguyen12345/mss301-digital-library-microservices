@@ -54,6 +54,28 @@ public class GatewaySecurityConfig {
                                                                 "/api/notifications/jobs/due-soon/run",
                                                                 "/api/notifications/jobs/overdue/run")
                                                 .hasAnyRole("ADMIN", "LIBRARIAN")
+                                                // ── Catalog admin verbs ────────────────────────────────
+                                                // Anyone authenticated may browse the catalog (GET); only
+                                                // admin/librarian may create, update, restore, delete, or
+                                                // upload covers. The paths below mirror the BookController,
+                                                // BookCopyController, CategoryController,
+                                                // ClassificationController, and DigitalResourceController
+                                                // mutating routes. Catalog-service additionally enforces the
+                                                // same rules locally as defense in depth.
+                                                .pathMatchers(HttpMethod.POST,
+                                                                "/api/catalog/books",
+                                                                "/api/catalog/books/{bookId}/cover",
+                                                                "/api/catalog/books/{bookId}/copies",
+                                                                "/api/catalog/categories",
+                                                                "/api/catalog/classifications",
+                                                                "/api/catalog/digital-resources")
+                                                .hasAnyRole("ADMIN", "LIBRARIAN")
+                                                .pathMatchers(HttpMethod.PUT, "/api/catalog/**")
+                                                .hasAnyRole("ADMIN", "LIBRARIAN")
+                                                .pathMatchers(HttpMethod.PATCH, "/api/catalog/**")
+                                                .hasAnyRole("ADMIN", "LIBRARIAN")
+                                                .pathMatchers(HttpMethod.DELETE, "/api/catalog/**")
+                                                .hasAnyRole("ADMIN", "LIBRARIAN")
                                                 .anyExchange().authenticated())
                                 .exceptionHandling(exceptions -> exceptions
                                                 .authenticationEntryPoint(securityErrorWriter)

@@ -1,19 +1,23 @@
 package fu.edu.mss301.digilib.member.infrastructure.keycloak;
 
+import fu.edu.mss301.digilib.member.api.error.ApiException;
 import fu.edu.mss301.digilib.member.config.KeycloakProperties;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
 import reactor.core.publisher.Mono;
 
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
@@ -37,6 +41,10 @@ public class KeycloakAdminClient {
 
     // ── Simple in-memory cache for the service-account token ─────────────────
     private final AtomicReference<CachedToken> cachedAdminToken = new AtomicReference<>();
+
+    // Keycloak realm-role IDs are stable for a realm's lifetime, so a simple
+    // unbounded in-process cache keyed by role name is sufficient.
+    private final Map<String, String> cachedRoleIds = new ConcurrentHashMap<>();
 
     // =========================================================================
     // Public API
@@ -160,6 +168,131 @@ public class KeycloakAdminClient {
                         .toBodilessEntity()
                         .then()
                 );
+    }
+
+    /**
+     * Assign a realm role to a user.  Resolves (and caches) the role's UUID via
+     * the Admin REST API, then POSTs the role-mapping.
+     *
+     * @throws ApiException with code ROLE_NOT_FOUND (HTTP 404) when the role
+     *                      does not exist in the realm.
+     */
+    public Mono<Void> assignRealmRole(String keycloakUserId, String roleName) {
+        Mono<Void> call = resolveRoleId(roleName)
+                .flatMap(roleId -> adminToken()
+                        .flatMap(token -> webClient.post()
+                                .uri(kc.adminUserRoleMappingsUrl(keycloakUserId))
+                                .header("Authorization", "Bearer " + token)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .bodyValue(List.of(Map.of("id", roleId, "name", roleName)))
+                                .retrieve()
+                                .toBodilessEntity()
+                                .then()
+                        )
+                );
+        return mapKeycloakAdmin403(call);
+    }
+
+    /**
+     * Remove a realm role from a user.  Idempotent — Keycloak returns 204 even
+     * when the role was not assigned, so callers can use this to clear any
+     * stale prior onboarding role without first checking.
+     */
+    public Mono<Void> removeRealmRole(String keycloakUserId, String roleName) {
+        Mono<Void> call = resolveRoleId(roleName)
+                .flatMap(roleId -> adminToken()
+                        .flatMap(token -> webClient.method(org.springframework.http.HttpMethod.DELETE)
+                                .uri(kc.adminUserRoleMappingsUrl(keycloakUserId))
+                                .header("Authorization", "Bearer " + token)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .bodyValue(List.of(Map.of("id", roleId, "name", roleName)))
+                                .retrieve()
+                                .toBodilessEntity()
+                                .then()
+                        )
+                );
+        return mapKeycloakAdmin403(call);
+    }
+
+    /**
+     * List the realm-role names currently assigned to a user.  Used during
+     * onboarding to detect and clear any prior student/lecturer assignment
+     * before assigning a new one.
+     */
+    public Mono<List<String>> listUserRealmRoles(String keycloakUserId) {
+        Mono<List<String>> call = adminToken()
+                .flatMap(token -> webClient.get()
+                        .uri(kc.adminUserRoleMappingsUrl(keycloakUserId))
+                        .header("Authorization", "Bearer " + token)
+                        .retrieve()
+                        .bodyToMono(new org.springframework.core.ParameterizedTypeReference<List<Map<String, Object>>>() {})
+                        .map(roles -> roles == null
+                                ? List.<String>of()
+                                : roles.stream()
+                                        .map(role -> String.valueOf(role.get("name")))
+                                        .toList())
+                );
+        return mapKeycloakAdmin403(call);
+    }
+
+    private Mono<String> resolveRoleId(String roleName) {
+        String cached = cachedRoleIds.get(roleName);
+        if (cached != null) {
+            return Mono.just(cached);
+        }
+        return adminToken()
+                .flatMap(token -> webClient.get()
+                        .uri(kc.adminRoleUrl(roleName))
+                        .header("Authorization", "Bearer " + token)
+                        .retrieve()
+                        .bodyToMono(new org.springframework.core.ParameterizedTypeReference<Map<String, Object>>() {})
+                        .map(role -> {
+                            String id = String.valueOf(role.get("id"));
+                            cachedRoleIds.put(roleName, id);
+                            return id;
+                        })
+                )
+                .onErrorResume(WebClientResponseException.class, ex -> {
+                    HttpStatus status = (HttpStatus) ex.getStatusCode();
+                    if (status == HttpStatus.NOT_FOUND) {
+                        return Mono.error(new ApiException(
+                                HttpStatus.NOT_FOUND,
+                                "ROLE_NOT_FOUND",
+                                "Role '" + roleName + "' is not configured in the Keycloak realm. "
+                                        + "Ask the operator to create realm roles 'student' and 'lecturer' "
+                                        + "in the digilib-realm."));
+                    }
+                    if (status == HttpStatus.FORBIDDEN) {
+                        return Mono.error(new ApiException(
+                                HttpStatus.SERVICE_UNAVAILABLE,
+                                "SERVICE_ACCOUNT_UNAUTHORIZED",
+                                "Member service's Keycloak service account cannot read realm roles. "
+                                        + "Grant 'realm-management.view-realm' (and 'realm-management.manage-users' "
+                                        + "for role assignment) to the digilib-auth service account in the Keycloak "
+                                        + "Admin Console under Clients > digilib-auth > Service Accounts Roles."));
+                    }
+                    return Mono.error(ex);
+                });
+    }
+
+    /**
+     * Wraps an admin REST call so a Keycloak 403 (service account lacks
+     * realm-management permissions) surfaces as a structured
+     * {@code SERVICE_ACCOUNT_UNAUTHORIZED} error instead of a generic 500.
+     */
+    private <T> Mono<T> mapKeycloakAdmin403(Mono<T> source) {
+        return source.onErrorResume(WebClientResponseException.class, ex -> {
+            if (ex.getStatusCode() == HttpStatus.FORBIDDEN) {
+                return Mono.error(new ApiException(
+                        HttpStatus.SERVICE_UNAVAILABLE,
+                        "SERVICE_ACCOUNT_UNAUTHORIZED",
+                        "Member service's Keycloak service account lacks permission to manage realm roles. "
+                                + "Grant 'realm-management.view-realm' and 'realm-management.manage-users' "
+                                + "to the digilib-auth service account in the Keycloak Admin Console "
+                                + "(Clients > digilib-auth > Service Accounts Roles)."));
+            }
+            return Mono.error(ex);
+        });
     }
 
     /**

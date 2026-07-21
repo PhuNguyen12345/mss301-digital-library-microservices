@@ -13,6 +13,8 @@ import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -98,18 +100,29 @@ class AuthServiceTests {
     }
 
     @Test
-    void forgotPasswordThrowsNotFoundWhenUserDoesNotExist() {
+    void forgotPasswordSilentlySucceedsWhenUserDoesNotExist() {
+        // Always-202 behavior: an unknown email must not surface as an error.
         String email = "nonexistent@example.com";
         when(keycloakClient.findUserByEmail(email)).thenReturn(Mono.empty());
 
         StepVerifier.create(authService.forgotPassword(email))
-                .expectErrorSatisfies(error -> {
-                    assertThat(error).isInstanceOf(ApiException.class);
-                    ApiException apiException = (ApiException) error;
-                    assertThat(apiException.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
-                    assertThat(apiException.getCode()).isEqualTo("USER_NOT_FOUND");
-                })
-                .verify();
+                .verifyComplete();
+
+        verify(keycloakClient).findUserByEmail(email);
+        verify(keycloakClient, never()).sendForgotPasswordEmail(any());
+    }
+
+    @Test
+    void forgotPasswordSucceedsEvenWhenKeycloakEmailSendFails() {
+        // The endpoint must not leak "email send failed" versus "user not found".
+        String email = "registered@example.com";
+        String userId = "keycloak-user-456";
+        when(keycloakClient.findUserByEmail(email)).thenReturn(Mono.just(userId));
+        when(keycloakClient.sendForgotPasswordEmail(userId))
+                .thenReturn(Mono.error(new IllegalStateException("SMTP unavailable")));
+
+        StepVerifier.create(authService.forgotPassword(email))
+                .verifyComplete();
 
         verify(keycloakClient).findUserByEmail(email);
     }

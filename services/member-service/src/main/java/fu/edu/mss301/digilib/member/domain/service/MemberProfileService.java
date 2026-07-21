@@ -1,21 +1,31 @@
 package fu.edu.mss301.digilib.member.domain.service;
 
+import fu.edu.mss301.digilib.member.api.error.ApiException;
 import fu.edu.mss301.digilib.member.domain.entity.MemberProfile;
 import fu.edu.mss301.digilib.member.domain.repository.MemberProfileRepository;
+import fu.edu.mss301.digilib.member.infrastructure.keycloak.KeycloakAdminClient;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.Set;
 import java.util.UUID;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class MemberProfileService {
 
+    /** The only role names a user may self-assign via the onboarding endpoint. */
+    static final Set<String> ONBOARDING_ROLES = Set.of("student", "lecturer");
+
     private final MemberProfileRepository repository;
+    private final KeycloakAdminClient keycloakClient;
 
     public Mono<MemberProfile> getProfileById(String id) {
         return repository.findById(id);
@@ -75,5 +85,70 @@ public class MemberProfileService {
                     profile.setStatus(status.toUpperCase());
                     return repository.save(profile);
                 });
+    }
+
+    /**
+     * Self-service onboarding: assigns the chosen role ({@code student} or
+     * {@code lecturer}) to the user in Keycloak and updates the profile's
+     * {@code memberType} to mirror the choice.
+     *
+     * Re-calling this endpoint switches roles cleanly: any prior
+     * student/lecturer assignment is removed before the new one is granted, so
+     * the user always holds at most one onboarding role.
+     *
+     * Saga order (at all times the user has at most one of student/lecturer):
+     *  1. Remove any existing student/lecturer roles from Keycloak.
+     *  2. Assign the new role in Keycloak.
+     *  3. Update {@code memberType} in the profile.
+     * If step 3 fails, the new role assignment is rolled back (best-effort)
+     * so the Keycloak and database states stay consistent.
+     */
+    public Mono<MemberProfile> assignUserRole(String keycloakSub, String role) {
+        String normalized = role == null ? "" : role.trim().toLowerCase();
+        if (!ONBOARDING_ROLES.contains(normalized)) {
+            return Mono.error(new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "INVALID_ROLE",
+                    "Role must be 'student' or 'lecturer'."));
+        }
+        String memberType = normalized.toUpperCase();
+
+        return keycloakClient.listUserRealmRoles(keycloakSub)
+                .flatMap(existingRoles -> {
+                    Mono<Void> cleanup = Mono.empty();
+                    for (String existing : existingRoles) {
+                        String existingLower = existing.toLowerCase();
+                        if (ONBOARDING_ROLES.contains(existingLower) && !existingLower.equals(normalized)) {
+                            cleanup = cleanup.then(keycloakClient.removeRealmRole(keycloakSub, existing));
+                        }
+                    }
+                    return cleanup;
+                })
+                .then(keycloakClient.assignRealmRole(keycloakSub, normalized))
+                .then(updateProfileMemberType(keycloakSub, memberType))
+                .onErrorResume(error -> {
+                    log.warn("Onboarding profile update failed for {}; rolling back Keycloak role '{}': {}",
+                            keycloakSub, normalized, error.getMessage());
+                    return keycloakClient.removeRealmRole(keycloakSub, normalized)
+                            .onErrorResume(rollbackError -> {
+                                log.error("Rollback failed for Keycloak user {} role '{}': {}",
+                                        keycloakSub, normalized, rollbackError.getMessage());
+                                return Mono.empty();
+                            })
+                            .then(Mono.error(error));
+                });
+    }
+
+    private Mono<MemberProfile> updateProfileMemberType(String id, String memberType) {
+        return repository.findById(id)
+                .flatMap(profile -> {
+                    profile.setMemberType(memberType);
+                    profile.setUpdatedAt(Instant.now());
+                    return repository.save(profile);
+                })
+                .switchIfEmpty(Mono.error(new ApiException(
+                        HttpStatus.NOT_FOUND,
+                        "MEMBER_PROFILE_NOT_FOUND",
+                        "Member profile not found. Please complete registration first.")));
     }
 }
