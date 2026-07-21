@@ -72,13 +72,30 @@ The repository does **not** ship a realm-export JSON. The realm must be configur
 
 ### Onboarding flow
 
-User registration (via Keycloak Admin REST API in `AuthService.register`) deliberately does **not** assign any realm role. New users show up with no onboarding role. The frontend is expected to send them to the role-choice screen, where they call `PATCH /api/v1/members/me/role` with `{"role": "student"}` or `{"role": "lecturer"}`. The member-service:
+After a user registers (email/password) or signs in via Google for the first time, their Keycloak realm role set is empty. The gateway blocks every protected endpoint with `403 ONBOARDING_REQUIRED` until they self-select `student` or `lecturer` via `PATCH /api/v1/members/me/role` (wrapped by `memberApi.selectRole`). The member-service:
 
 1. Lists current realm roles; removes any prior `student`/`lecturer` (so a user only ever holds one).
 2. Assigns the new role via the Keycloak admin role-mapping API.
-3. Updates `member_profiles.member_type` to mirror the choice (`STUDENT` or `LECTURER`), and rolls back the Keycloak role assignment if the profile update fails.
+3. Fetches the role's **attributes** from Keycloak (Admin REST API `GET /admin/realms/{realm}/roles/{roleName}` — the `attributes` map).
+4. Updates `member_profiles.member_type` plus three profile attribute columns — `borrowing_limit`, `loan_period_days`, `reservation_priority` — from the role's attributes, then saves. Rolls back the Keycloak role assignment if the profile save fails.
 
-The gateway's `OnboardingRequiredFilter` blocks any authenticated request that doesn't carry a `student`/`lecturer`/`librarian`/`admin` role with `403 ONBOARDING_REQUIRED`. Whitelisted paths (`/actuator/**`, `/api/v1/auth/**`, `GET|PATCH /api/v1/members/me`, `PATCH /api/v1/members/me/role`) are still reachable so the user can read their profile and complete onboarding.
+Attribute lookup is case-insensitive on the key name and never throws — if a role attribute is missing or its value isn't an integer, the existing profile column value is kept. If the entire `GET /roles/{roleName}` call fails (e.g. service account temporarily lost `view-realm`), onboarding still succeeds and the existing profile values are kept; only `memberType` is updated.
+
+### Realm-role attributes used by member-service
+
+When creating role `student` and `lecturer` in the Keycloak Admin Console (realm `digilib-realm` → **Realm roles → Create role**), add the following role attributes (under the role's **Details → Attributes** tab) so member-service can copy them onto each user's profile at onboarding:
+
+| Attribute key (camelCase preferred) | Type | Meaning |
+| :--- | :--- | :--- |
+| `borrowingLimit` | integer | Max books a user with this role may borrow simultaneously. |
+| `loanPeriodDays` | integer | Default loan duration in days for a user with this role. |
+| `reservationPriority` | integer | Higher = precedence when the user reserves a book that is currently loaned out. |
+
+Keycloak stores role attributes as `Map<String, List<String>>`; member-service reads `values[0]` and parses it as an integer. Keys are matched case-insensitively as a fallback to keep onboarding from silently failing if an operator types `borrowinglimit` or `BORROWINGLIMIT` in the Admin Console.
+
+Profile defaults (used by `registerOrFetchProfile` for JIT profile creation, before onboarding): `borrowingLimit=5`, `loanPeriodDays=14`, `reservationPriority=0`. These are always overwritten at onboarding time with the role's attributes — but if a role attribute is missing, the JIT default survives.
+
+The role attributes cache is in-memory per member-service process. If you edit role attributes in the Keycloak Admin Console, restart member-service (or wait for the process to recycle) before new onboarding calls pick up the change. Existing users who already onboarded won't be retroactively updated — only new onboarding calls (or role-switch requests via the same endpoint) read the latest attributes. To retrofit existing users, re-call `PATCH /api/v1/members/me/role` for each.
 
 ### Realm default-roles
 

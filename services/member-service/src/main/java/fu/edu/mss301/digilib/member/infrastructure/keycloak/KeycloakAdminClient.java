@@ -42,9 +42,11 @@ public class KeycloakAdminClient {
     // ── Simple in-memory cache for the service-account token ─────────────────
     private final AtomicReference<CachedToken> cachedAdminToken = new AtomicReference<>();
 
-    // Keycloak realm-role IDs are stable for a realm's lifetime, so a simple
-    // unbounded in-process cache keyed by role name is sufficient.
-    private final Map<String, String> cachedRoleIds = new ConcurrentHashMap<>();
+    // Keycloak realm-role representations (id + attributes) are stable for a
+    // realm's lifetime, so a simple unbounded in-process cache keyed by role
+    // name is sufficient.  The cache holds the parsed RoleRep so callers that
+    // need attributes (e.g. the onboarding flow) don't issue a second GET.
+    private final Map<String, RoleRep> cachedRoles = new ConcurrentHashMap<>();
 
     // =========================================================================
     // Public API
@@ -178,13 +180,13 @@ public class KeycloakAdminClient {
      *                      does not exist in the realm.
      */
     public Mono<Void> assignRealmRole(String keycloakUserId, String roleName) {
-        Mono<Void> call = resolveRoleId(roleName)
-                .flatMap(roleId -> adminToken()
+        Mono<Void> call = resolveRoleRep(roleName)
+                .flatMap(rep -> adminToken()
                         .flatMap(token -> webClient.post()
                                 .uri(kc.adminUserRoleMappingsUrl(keycloakUserId))
                                 .header("Authorization", "Bearer " + token)
                                 .contentType(MediaType.APPLICATION_JSON)
-                                .bodyValue(List.of(Map.of("id", roleId, "name", roleName)))
+                                .bodyValue(List.of(Map.of("id", rep.id(), "name", roleName)))
                                 .retrieve()
                                 .toBodilessEntity()
                                 .then()
@@ -199,13 +201,13 @@ public class KeycloakAdminClient {
      * stale prior onboarding role without first checking.
      */
     public Mono<Void> removeRealmRole(String keycloakUserId, String roleName) {
-        Mono<Void> call = resolveRoleId(roleName)
-                .flatMap(roleId -> adminToken()
+        Mono<Void> call = resolveRoleRep(roleName)
+                .flatMap(rep -> adminToken()
                         .flatMap(token -> webClient.method(org.springframework.http.HttpMethod.DELETE)
                                 .uri(kc.adminUserRoleMappingsUrl(keycloakUserId))
                                 .header("Authorization", "Bearer " + token)
                                 .contentType(MediaType.APPLICATION_JSON)
-                                .bodyValue(List.of(Map.of("id", roleId, "name", roleName)))
+                                .bodyValue(List.of(Map.of("id", rep.id(), "name", roleName)))
                                 .retrieve()
                                 .toBodilessEntity()
                                 .then()
@@ -235,8 +237,24 @@ public class KeycloakAdminClient {
         return mapKeycloakAdmin403(call);
     }
 
-    private Mono<String> resolveRoleId(String roleName) {
-        String cached = cachedRoleIds.get(roleName);
+    /**
+     * Fetch a realm role's attributes (e.g. {@code loanPeriodDays},
+     * {@code borrowingLimit}, {@code reservationPriority}) as Keycloak stores
+     * them: a map of {@code String → List<String>}.  The onboarding flow reads
+     * these and applies them to the member profile so that a role's settings
+     * actually take effect for the user.
+     *
+     * <p>The result is cached per role-name for the process lifetime; if an
+     * operator edits a role's attributes in the Keycloak Admin Console,
+     * restart member-service to pick up the change.
+     */
+    public Mono<Map<String, List<String>>> fetchRoleAttributes(String roleName) {
+        return resolveRoleRep(roleName).map(RoleRep::attributes);
+    }
+
+    @SuppressWarnings("unchecked")
+    private Mono<RoleRep> resolveRoleRep(String roleName) {
+        RoleRep cached = cachedRoles.get(roleName);
         if (cached != null) {
             return Mono.just(cached);
         }
@@ -248,8 +266,11 @@ public class KeycloakAdminClient {
                         .bodyToMono(new org.springframework.core.ParameterizedTypeReference<Map<String, Object>>() {})
                         .map(role -> {
                             String id = String.valueOf(role.get("id"));
-                            cachedRoleIds.put(roleName, id);
-                            return id;
+                            Map<String, List<String>> attributes =
+                                    (Map<String, List<String>>) role.getOrDefault("attributes", Map.of());
+                            RoleRep rep = new RoleRep(id, attributes);
+                            cachedRoles.put(roleName, rep);
+                            return rep;
                         })
                 )
                 .onErrorResume(WebClientResponseException.class, ex -> {
@@ -415,5 +436,13 @@ public class KeycloakAdminClient {
         boolean isValid() {
             return Instant.now().isBefore(expiresAt);
         }
+    }
+
+    /**
+     * Subset of Keycloak's role representation that we actually use: the role
+     * UUID (for role-mapping POST/DELETE bodies) and the role's attributes
+     * (operator-defined key→list-of-strings, e.g. for borrower limits).
+     */
+    record RoleRep(String id, Map<String, List<String>> attributes) {
     }
 }
