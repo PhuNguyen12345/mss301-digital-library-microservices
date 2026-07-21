@@ -12,6 +12,7 @@ public record FineResponse(
         Long bookId,
         String bookTitle,
         String studentId,
+        String studentName,
         String studentEmail,
         FineReason reason,
         LocalDateTime dueDate,
@@ -22,16 +23,21 @@ public record FineResponse(
         LocalDateTime paidAt
 ) {
     public static FineResponse from(Fine fine) {
-        return from(fine, null);
+        return from(fine, null, null);
     }
 
     public static FineResponse from(Fine fine, String bookTitle) {
+        return from(fine, bookTitle, null);
+    }
+
+    public static FineResponse from(Fine fine, String bookTitle, String studentName) {
         return new FineResponse(
                 fine.getId(),
                 fine.getLoanId(),
                 fine.getBookId(),
                 bookTitle,
                 fine.getStudentId(),
+                studentName,
                 fine.getStudentEmail(),
                 fine.getReason(),
                 fine.getDueDate(),
