@@ -22,6 +22,9 @@ spring:
           time_zone: UTC
     open-in-view: false
 
+services:
+  internal-api-key: ${INTERNAL_API_KEY}
+
 sepay:
   bank: ${SEPAY_BANK:}
   account-number: ${SEPAY_ACCOUNT_NUMBER:}
