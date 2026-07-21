@@ -45,6 +45,7 @@ public class GatewaySecurityConfig {
                                                 // without forwarding this private service-to-service path.
                                                 .pathMatchers("/api/v1/members/internal/**").permitAll()
                                                 .pathMatchers(HttpMethod.GET, "/files/**").permitAll()
+                                                .pathMatchers(HttpMethod.GET, "/api/catalog/books").permitAll()
                                                 .pathMatchers(HttpMethod.GET, "/api/v1/borrow-requests/me")
                                                 .authenticated()
                                                 .pathMatchers(HttpMethod.POST, "/api/v1/borrow-requests")
