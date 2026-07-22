@@ -82,7 +82,7 @@ public class LoanController {
         if (ownerId.equals(jwt.getSubject()) || hasStaffRole(jwt))
             return;
         throw new org.springframework.web.server.ResponseStatusException(
-                org.springframework.http.HttpStatus.FORBIDDEN, "Loan belongs to another member");
+                org.springframework.http.HttpStatus.FORBIDDEN, "Phiếu mượn thuộc về thành viên khác");
     }
 
     private boolean hasStaffRole(Jwt jwt) {

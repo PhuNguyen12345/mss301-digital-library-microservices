@@ -25,7 +25,7 @@ public class InternalLoanController {
     public List<LoanDueResponse> dueSoon(@RequestParam(defaultValue = "3") int days,
                                         @RequestHeader("X-Internal-Api-Key") String apiKey) {
         verify(apiKey);
-        if (days < 0 || days > 365) throw new IllegalArgumentException("days must be between 0 and 365");
+        if (days < 0 || days > 365) throw new IllegalArgumentException("Số ngày phải nằm trong khoảng từ 0 đến 365");
         return manageLoanUseCase.findDueSoon(days, LocalDateTime.now());
     }
 
@@ -36,6 +36,6 @@ public class InternalLoanController {
     }
 
     private void verify(String value) {
-        if (!internalApiKey.equals(value)) throw new IllegalStateException("Invalid internal API key");
+        if (!internalApiKey.equals(value)) throw new IllegalStateException("Khóa API nội bộ không hợp lệ");
     }
 }
