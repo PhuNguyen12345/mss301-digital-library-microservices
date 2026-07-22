@@ -14,8 +14,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.oauth2.jwt.Jwt;
 
 import java.net.URI;
 import java.util.List;
@@ -71,8 +69,6 @@ public class LoanController {
     @GetMapping("/loans/member/{memberId}")
     public List<LoanResponse> findByMember(@PathVariable String memberId) {
         return manageLoanUseCase.findByMember(memberId).stream().map(LoanResponse::from).toList();
-    }
-
     }
 
     @GetMapping("/loans/my-loans")
