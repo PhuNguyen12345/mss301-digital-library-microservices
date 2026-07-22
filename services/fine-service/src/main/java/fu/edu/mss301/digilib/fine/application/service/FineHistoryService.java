@@ -7,6 +7,7 @@ import fu.edu.mss301.digilib.fine.application.exception.ResourceNotFoundExceptio
 import fu.edu.mss301.digilib.fine.domain.aggregate.FineAggregate;
 import fu.edu.mss301.digilib.fine.domain.entity.Fine;
 import fu.edu.mss301.digilib.fine.domain.vo.FineStatus;
+import fu.edu.mss301.digilib.fine.infrastructure.adapter.MemberClientAdapter;
 import fu.edu.mss301.digilib.fine.infrastructure.client.CatalogServiceClient;
 import fu.edu.mss301.digilib.fine.infrastructure.client.dto.BookSummaryDto;
 import fu.edu.mss301.digilib.fine.infrastructure.persistence.FineJpaRepository;
@@ -17,6 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.stream.Stream;
 
 /**
  * Backs Flow 7 (FINE_HISTORY_FLOW.md): both the student "My Fines" screen and
@@ -30,15 +32,18 @@ public class FineHistoryService {
     private final FineJpaRepository fineRepository;
     private final PaymentAttemptJpaRepository paymentRepository;
     private final CatalogServiceClient catalogServiceClient;
+    private final MemberClientAdapter memberClientAdapter;
 
     public FineHistoryService(
             FineJpaRepository fineRepository,
             PaymentAttemptJpaRepository paymentRepository,
-            CatalogServiceClient catalogServiceClient
+            CatalogServiceClient catalogServiceClient,
+            MemberClientAdapter memberClientAdapter
     ) {
         this.fineRepository = fineRepository;
         this.paymentRepository = paymentRepository;
         this.catalogServiceClient = catalogServiceClient;
+        this.memberClientAdapter = memberClientAdapter;
     }
 
     @Transactional(readOnly = true)
@@ -102,7 +107,7 @@ public class FineHistoryService {
     }
 
     private FineResponse toEnrichedResponse(Fine fine) {
-        return FineResponse.from(fine, resolveBookTitle(fine.getBookId()));
+        return FineResponse.from(fine, resolveBookTitle(fine.getBookId()), resolveStudentName(fine.getStudentId()));
     }
 
     private String resolveBookTitle(Long bookId) {
@@ -119,4 +124,24 @@ public class FineHistoryService {
             return null;
         }
     }
+
+    private String resolveStudentName(String studentId) {
+        if (studentId == null) {
+            return null;
+        }
+
+        MemberClientAdapter.MemberResponse member = memberClientAdapter.getMember(studentId);
+        if (member == null) {
+            return null;
+        }
+
+        String fullName = String.join(
+                " ",
+                Stream.of(member.firstName(), member.lastName())
+                        .filter(name -> name != null && !name.isBlank())
+                        .toList()
+        );
+        return fullName.isBlank() ? null : fullName;
+    }
+
 }
