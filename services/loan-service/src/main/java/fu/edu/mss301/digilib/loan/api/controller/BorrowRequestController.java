@@ -1,59 +1,79 @@
 package fu.edu.mss301.digilib.loan.api.controller;
 
-import fu.edu.mss301.digilib.loan.api.dto.BorrowRequestCreateRequest;
-import fu.edu.mss301.digilib.loan.api.dto.BorrowRequestDecisionRequest;
 import fu.edu.mss301.digilib.loan.api.dto.BorrowRequestResponse;
-import fu.edu.mss301.digilib.loan.application.usecase.ManageBorrowRequestUseCase;
-import fu.edu.mss301.digilib.loan.domain.vo.LoanStatus;
+import fu.edu.mss301.digilib.loan.api.dto.CreateBorrowRequest;
+import fu.edu.mss301.digilib.loan.api.dto.LoanResponse;
+import fu.edu.mss301.digilib.loan.api.dto.RejectBorrowRequest;
+import fu.edu.mss301.digilib.loan.application.usecase.BorrowRequestUseCase;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.http.HttpStatus;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.net.URI;
 
 @RestController
 @RequestMapping("/api/v1/borrow-requests")
 @RequiredArgsConstructor
 public class BorrowRequestController {
 
-    private final ManageBorrowRequestUseCase useCase;
+    static final String AUTHENTICATED_USER_HEADER = "X-Authenticated-User-Id";
+
+    private final BorrowRequestUseCase useCase;
 
     @PostMapping
-    @ResponseStatus(HttpStatus.CREATED)
-    public BorrowRequestResponse create(@AuthenticationPrincipal Jwt jwt,
-                                        @Valid @RequestBody BorrowRequestCreateRequest request) {
-        return BorrowRequestResponse.from(useCase.create(
-                jwt.getSubject(), request.bookId(), request.bookType(), request.idempotencyKey()));
+    public ResponseEntity<BorrowRequestResponse> create(
+            @RequestHeader(AUTHENTICATED_USER_HEADER) String memberId,
+            @Valid @RequestBody CreateBorrowRequest request) {
+        BorrowRequestResponse response = useCase.create(memberId, request);
+        return ResponseEntity.created(URI.create("/api/v1/borrow-requests/" + response.requestId()))
+                .body(response);
     }
 
     @GetMapping("/me")
-    public Page<BorrowRequestResponse> mine(@AuthenticationPrincipal Jwt jwt, Pageable pageable) {
-        return useCase.findMine(jwt.getSubject(), pageable).map(BorrowRequestResponse::from);
-    }
-
-    @DeleteMapping("/{requestId}")
-    public BorrowRequestResponse cancel(@PathVariable Long requestId, @AuthenticationPrincipal Jwt jwt) {
-        return BorrowRequestResponse.from(useCase.cancel(requestId, jwt.getSubject()));
+    public Page<BorrowRequestResponse> findMine(
+            @RequestHeader(AUTHENTICATED_USER_HEADER) String memberId,
+            Pageable pageable) {
+        return useCase.findMine(memberId, pageable);
     }
 
     @GetMapping
-    public Page<BorrowRequestResponse> reviewQueue(
-            @RequestParam(required = false) LoanStatus status, Pageable pageable) {
-        return useCase.findForReview(status, pageable).map(BorrowRequestResponse::from);
+    public Page<BorrowRequestResponse> findByStatus(
+            @RequestParam(defaultValue = "PENDING") String status,
+            Pageable pageable) {
+        return useCase.findByStatus(status, pageable);
     }
 
     @PostMapping("/{requestId}/approve")
-    public BorrowRequestResponse approve(@PathVariable Long requestId, @AuthenticationPrincipal Jwt jwt) {
-        return BorrowRequestResponse.from(useCase.approve(requestId, jwt.getSubject()));
+    public LoanResponse approve(
+            @PathVariable Long requestId,
+            @RequestHeader(AUTHENTICATED_USER_HEADER) String actorId) {
+        return useCase.approve(requestId, actorId);
     }
 
     @PostMapping("/{requestId}/reject")
-    public BorrowRequestResponse reject(@PathVariable Long requestId,
-                                        @AuthenticationPrincipal Jwt jwt,
-                                        @Valid @RequestBody BorrowRequestDecisionRequest request) {
-        return BorrowRequestResponse.from(useCase.reject(requestId, jwt.getSubject(), request.reason()));
+    public BorrowRequestResponse reject(
+            @PathVariable Long requestId,
+            @RequestHeader(AUTHENTICATED_USER_HEADER) String actorId,
+            @Valid @RequestBody RejectBorrowRequest request) {
+        return useCase.reject(requestId, request.reason(), actorId);
+    }
+
+    @DeleteMapping("/{requestId}")
+    public ResponseEntity<Void> cancel(
+            @PathVariable Long requestId,
+            @RequestHeader(AUTHENTICATED_USER_HEADER) String memberId) {
+        useCase.cancel(requestId, memberId);
+        return ResponseEntity.noContent().build();
     }
 }
