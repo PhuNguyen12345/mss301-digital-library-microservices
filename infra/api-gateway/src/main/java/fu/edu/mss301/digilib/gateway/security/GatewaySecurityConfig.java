@@ -40,7 +40,7 @@ public class GatewaySecurityConfig {
                                 "/api/v1/auth/register",
                                 "/api/v1/auth/login",
                                 "/api/v1/auth/oauth2/exchange",
-                                "api/v1/auth/forgot-password")
+                                "/api/v1/auth/forgot-password")
                         .permitAll()
                         .pathMatchers(HttpMethod.POST, "/api/v1/auth/logout").authenticated()
                         // The existing highest-priority Gateway filter returns 404

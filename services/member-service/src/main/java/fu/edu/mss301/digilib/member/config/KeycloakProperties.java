@@ -32,6 +32,9 @@ public class KeycloakProperties {
     @NotBlank
     private String clientSecret;
 
+    /** Toggle to require email verification upon registration (useful to disable in local dev) */
+    private boolean requireEmailVerification = true;
+
     // -------------------------------------------------------------------------
     // Derived URL helpers — avoids string formatting scattered across adapters
     // -------------------------------------------------------------------------
@@ -81,5 +84,24 @@ public class KeycloakProperties {
 
     public String logoutUrl() {
         return baseUrl + "/realms/" + realm + "/protocol/openid-connect/logout";
+    }
+
+    /**
+     * Builds the OIDC RP-Initiated Logout URL that the frontend must redirect
+     * the browser to in order to clear Keycloak's browser cookies.
+     *
+     * @param idTokenHint         the raw id_token from login (may be null)
+     * @param postLogoutRedirect  the URI to redirect to after logout (may be null)
+     */
+    public String rpInitiatedLogoutUrl(String idTokenHint, String postLogoutRedirect) {
+        StringBuilder sb = new StringBuilder(logoutUrl());
+        sb.append("?client_id=").append(java.net.URLEncoder.encode(clientId, java.nio.charset.StandardCharsets.UTF_8));
+        if (idTokenHint != null && !idTokenHint.isBlank()) {
+            sb.append("&id_token_hint=").append(java.net.URLEncoder.encode(idTokenHint, java.nio.charset.StandardCharsets.UTF_8));
+        }
+        if (postLogoutRedirect != null && !postLogoutRedirect.isBlank()) {
+            sb.append("&post_logout_redirect_uri=").append(java.net.URLEncoder.encode(postLogoutRedirect, java.nio.charset.StandardCharsets.UTF_8));
+        }
+        return sb.toString();
     }
 }

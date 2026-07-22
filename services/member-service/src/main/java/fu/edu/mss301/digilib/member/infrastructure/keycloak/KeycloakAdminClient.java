@@ -64,7 +64,7 @@ public class KeycloakAdminClient {
                 "firstName", firstName != null ? firstName : "",
                 "lastName", lastName != null ? lastName : "",
                 "enabled", true,
-                "emailVerified", false
+                "emailVerified", !kc.isRequireEmailVerification()
         );
 
         return adminToken()
@@ -81,6 +81,18 @@ public class KeycloakAdminClient {
                             return location.substring(location.lastIndexOf('/') + 1);
                         })
                 );
+    }
+
+    public boolean isRequireEmailVerification() {
+        return kc.isRequireEmailVerification();
+    }
+
+    /**
+     * Builds the OIDC RP-Initiated Logout URL that the frontend must redirect
+     * the browser to in order to clear Keycloak's browser cookies.
+     */
+    public String buildRpInitiatedLogoutUrl(String idTokenHint, String postLogoutRedirectUri) {
+        return kc.rpInitiatedLogoutUrl(idTokenHint, postLogoutRedirectUri);
     }
 
     /**
@@ -347,6 +359,25 @@ public class KeycloakAdminClient {
         form.add("client_secret", kc.getClientSecret());
         form.add("token", refreshToken);
         form.add("token_type_hint", "refresh_token");
+
+        return webClient.post()
+                .uri(kc.revokeUrl())
+                .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                .body(BodyInserters.fromFormData(form))
+                .retrieve()
+                .toBodilessEntity()
+                .then();
+    }
+
+    /**
+     * Revoke an access token so it can no longer be used.
+     */
+    public Mono<Void> revokeAccessToken(String accessToken) {
+        MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
+        form.add("client_id", kc.getClientId());
+        form.add("client_secret", kc.getClientSecret());
+        form.add("token", accessToken);
+        form.add("token_type_hint", "access_token");
 
         return webClient.post()
                 .uri(kc.revokeUrl())

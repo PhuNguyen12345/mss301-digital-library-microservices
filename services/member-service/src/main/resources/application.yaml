@@ -48,6 +48,7 @@ keycloak:
   # No default on purpose: a confidential client must never start with a
   # repository-owned or well-known secret.
   client-secret: ${KEYCLOAK_CLIENT_SECRET}
+  require-email-verification: ${KEYCLOAK_REQUIRE_EMAIL_VERIFICATION:true}
 
 services:
   # Shared only by trusted service-to-service callers. No repository default.
