@@ -27,14 +27,20 @@ RUN --mount=type=cache,target=/root/.m2 \
     test -n "${MODULE}" \
     && mvn --batch-mode --no-transfer-progress \
         -pl "${MODULE}" -am package -DskipTests \
+    && ls -l "${MODULE}/target"/*.jar \
     && find "${MODULE}/target" \
         -maxdepth 1 \
         -type f \
         -name "*.jar" \
         ! -name "*.original" \
-        -exec cp {} /application.jar \; \
-        -quit \
-    && test -f /application.jar
+        -printf "%s %p\n" \
+        | sort -rn \
+        | head -n1 \
+        | cut -d' ' -f2- \
+        | xargs -I{} cp {} /application.jar \
+    && test -f /application.jar \
+    && jar xf /application.jar META-INF/MANIFEST.MF \
+    && grep -q "^Main-Class:" META-INF/MANIFEST.MF
 
 FROM eclipse-temurin:21-jre
 
