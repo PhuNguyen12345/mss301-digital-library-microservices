@@ -29,7 +29,6 @@ services:
   notification:
     base-url: ${NOTIFICATION_SERVICE_URL:http://localhost:8085}
 
-
 sepay:
   bank: ${SEPAY_BANK:}
   account-number: ${SEPAY_ACCOUNT_NUMBER:}
