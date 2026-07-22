@@ -18,12 +18,12 @@ spring:
 services:
   internal-api-key: ${INTERNAL_API_KEY}
   catalog:
-    base-url: ${CATALOG_SERVICE_URL:http://localhost:8082}
+    base-url: ${CATALOG_SERVICE_URL:http://localhost:8081}
     default-book-value: ${DEFAULT_BOOK_VALUE:250000}
   member:
-    base-url: ${MEMBER_SERVICE_URL:http://localhost:8083}
+    base-url: ${MEMBER_SERVICE_URL:http://localhost:8082}
   fine:
-    base-url: ${FINE_SERVICE_URL:http://localhost:8086}
+    base-url: ${FINE_SERVICE_URL:http://localhost:8084}
   notification:
     base-url: ${NOTIFICATION_SERVICE_URL:http://localhost:8085}
 

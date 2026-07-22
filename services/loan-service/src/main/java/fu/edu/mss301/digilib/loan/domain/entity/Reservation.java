@@ -22,7 +22,7 @@ public class Reservation {
     private Long reservationId;
 
     @Column(name = "member_id", nullable = false)
-    private Long memberId;
+    private String memberId;
 
     @Column(name = "book_id", nullable = false)
     private Long bookId;
