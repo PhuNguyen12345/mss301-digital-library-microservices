@@ -7,16 +7,12 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.List;
 
-/**
- * Loan-service does not yet expose these read endpoints (its controller layer is still a stub),
- * so the scheduled jobs calling this client will fail until loan-service implements them.
- */
-@FeignClient(name = "loan-service")
+@FeignClient(name = "loan-service", configuration = LoanServiceFeignConfig.class)
 public interface LoanServiceClient {
 
-    @GetMapping("/api/loan/due-soon")
+    @GetMapping("/api/v1/loans/internal/due-soon")
     List<LoanDueDto> getLoansDueInDays(@RequestParam("days") int days);
 
-    @GetMapping("/api/loan/overdue")
+    @GetMapping("/api/v1/loans/internal/overdue")
     List<LoanDueDto> getOverdueLoans();
 }
